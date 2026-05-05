@@ -94,3 +94,54 @@ test('parseIsoDuration returns null for malformed or missing input', () => {
   assert.strictEqual(parseIsoDuration('30 min'), null);
   assert.strictEqual(parseIsoDuration('PT'), null);
 });
+
+const { flattenInstructions } = require('../lib/scrape');
+
+test('flattenInstructions handles a single string', () => {
+  assert.deepStrictEqual(
+    flattenInstructions('Mix everything. Bake at 350°F for 30 minutes.'),
+    ['Mix everything. Bake at 350°F for 30 minutes.']
+  );
+});
+
+test('flattenInstructions handles an array of strings', () => {
+  assert.deepStrictEqual(
+    flattenInstructions(['Step 1', 'Step 2']),
+    ['Step 1', 'Step 2']
+  );
+});
+
+test('flattenInstructions handles HowToStep objects (uses .text)', () => {
+  const input = [
+    { '@type': 'HowToStep', text: 'Do A' },
+    { '@type': 'HowToStep', text: 'Do B' }
+  ];
+  assert.deepStrictEqual(flattenInstructions(input), ['Do A', 'Do B']);
+});
+
+test('flattenInstructions recurses into HowToSection.itemListElement', () => {
+  const input = [
+    { '@type': 'HowToSection', itemListElement: [
+      { '@type': 'HowToStep', text: 'A1' },
+      { '@type': 'HowToStep', text: 'A2' }
+    ]},
+    { '@type': 'HowToSection', itemListElement: [
+      { '@type': 'HowToStep', text: 'B1' }
+    ]}
+  ];
+  assert.deepStrictEqual(flattenInstructions(input), ['A1', 'A2', 'B1']);
+});
+
+test('flattenInstructions returns [] for missing/empty input', () => {
+  assert.deepStrictEqual(flattenInstructions(undefined), []);
+  assert.deepStrictEqual(flattenInstructions(null), []);
+  assert.deepStrictEqual(flattenInstructions([]), []);
+  assert.deepStrictEqual(flattenInstructions(''), []);
+});
+
+test('flattenInstructions trims whitespace and drops empties', () => {
+  assert.deepStrictEqual(
+    flattenInstructions(['  one  ', '', '   ', 'two']),
+    ['one', 'two']
+  );
+});
