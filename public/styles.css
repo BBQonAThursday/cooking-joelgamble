@@ -338,16 +338,23 @@ a:hover { text-decoration: underline; }
 /* Recipe body two-column */
 .recipe-body {
   display: grid;
-  grid-template-columns: minmax(220px, 320px) 1fr;
-  gap: 32px;
+  grid-template-columns: minmax(200px, 280px) 1fr;
+  gap: 40px;
   align-items: start;
   margin-top: 16px;
 }
 .recipe-body h2 { margin-top: 0; }
-.recipe-ingredients ul,
+.recipe-ingredients ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0 0 8px;
+}
+.recipe-ingredients li { margin-bottom: 6px; }
 .recipe-instructions ol { padding-left: 22px; }
-.recipe-ingredients li,
-.recipe-instructions li { margin-bottom: 6px; }
+.recipe-instructions li {
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
 
 /* Ingredient categories on recipe detail */
 .ingredient-category {
