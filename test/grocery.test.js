@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { newGroceryId, addItem } = require('../lib/grocery');
+const { newGroceryId, addItem, toggleChecked } = require('../lib/grocery');
 
 test('newGroceryId returns a g_-prefixed string', () => {
   const id = newGroceryId();
@@ -46,4 +46,24 @@ test('addItem tolerates missing grocery array', () => {
   addItem(state, 'milk');
   assert.ok(Array.isArray(state.grocery));
   assert.strictEqual(state.grocery.length, 1);
+});
+
+test('toggleChecked flips an item from unchecked to checked', () => {
+  const state = { grocery: [{ id: 'g_a', text: 'eggs', checked: false }] };
+  const result = toggleChecked(state, 'g_a');
+  assert.strictEqual(result.ok, true);
+  assert.strictEqual(result.item.checked, true);
+  assert.strictEqual(state.grocery[0].checked, true);
+});
+
+test('toggleChecked flips a checked item back to unchecked', () => {
+  const state = { grocery: [{ id: 'g_a', text: 'eggs', checked: true }] };
+  toggleChecked(state, 'g_a');
+  assert.strictEqual(state.grocery[0].checked, false);
+});
+
+test('toggleChecked rejects an unknown id', () => {
+  const state = { grocery: [{ id: 'g_a', text: 'eggs', checked: false }] };
+  const result = toggleChecked(state, 'g_zzz');
+  assert.deepStrictEqual(result, { ok: false, reason: 'unknown item' });
 });
