@@ -1,9 +1,23 @@
-<section id="recipes-panel">
+<section id="recipes-panel" class="recipes-panel">
   {% if hasRecipes %}
     <ul class="recipe-list">
       {% for r in recipes %}
         <li class="recipe-card" data-id="{{ r.id }}">
-          <a href="/recipes/{{ r.id }}">{{ r.title }}</a>
+          <a class="recipe-card-link" href="/recipes/{{ r.id }}">
+            {% if r.imageUrl %}
+              <img class="recipe-card-img" src="{{ r.imageUrl }}" alt="" loading="lazy">
+            {% else %}
+              <div class="recipe-card-img recipe-card-img-empty"></div>
+            {% endif %}
+            <div class="recipe-card-body">
+              <div class="recipe-card-title">{{ r.title }}</div>
+              <div class="recipe-card-meta">
+                {% if r.servings %}{{ r.servings }}{% endif %}
+                {% if r.totalTimeLabel %} · {{ r.totalTimeLabel }}{% endif %}
+                {% if r.sourceDomain %} · {{ r.sourceDomain }}{% endif %}
+              </div>
+            </div>
+          </a>
           <button class="delete-btn"
                   hx-delete="/recipes/{{ r.id }}"
                   hx-swap="none"
