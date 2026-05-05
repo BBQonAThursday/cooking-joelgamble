@@ -238,3 +238,82 @@ test('normalizeRecipe defaults missing fields cleanly', () => {
   assert.deepStrictEqual(r.ingredients, []);
   assert.deepStrictEqual(r.instructions, []);
 });
+
+const fs = require('node:fs');
+const path = require('node:path');
+const { scrape } = require('../lib/scrape');
+
+function fixture(name) {
+  return fs.readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
+}
+
+function mockFetch(html, { status = 200, contentType = 'text/html; charset=utf-8' } = {}) {
+  return async (_url, _opts) => ({
+    ok: status >= 200 && status < 300,
+    status,
+    headers: { get: name => name.toLowerCase() === 'content-type' ? contentType : null },
+    text: async () => html,
+    body: { getReader: () => null } // unused; we use text()
+  });
+}
+
+test('scrape returns ok with normalized recipe (basic fixture)', async () => {
+  const result = await scrape('https://example.com/basic', {
+    fetch: mockFetch(fixture('recipe-basic.html')),
+    now: new Date('2026-05-05T12:00:00Z')
+  });
+  assert.strictEqual(result.ok, true);
+  assert.strictEqual(result.recipe.title, 'Basic Pasta');
+  assert.strictEqual(result.recipe.servings, '4 servings');
+  assert.strictEqual(result.recipe.totalMinutes, 30);
+  assert.strictEqual(result.recipe.ingredients.length, 3);
+  assert.strictEqual(result.recipe.instructions.length, 3);
+  assert.strictEqual(result.recipe.sourceUrl, 'https://example.com/basic');
+});
+
+test('scrape walks @graph and HowToSection (graph fixture)', async () => {
+  const result = await scrape('https://example.com/stew', {
+    fetch: mockFetch(fixture('recipe-graph.html')),
+    now: new Date()
+  });
+  assert.strictEqual(result.ok, true);
+  assert.strictEqual(result.recipe.title, 'Sectioned Stew');
+  assert.strictEqual(result.recipe.imageUrl, 'https://example.com/stew.jpg');
+  assert.deepStrictEqual(result.recipe.instructions, ['Sauté onion.', 'Add broth.']);
+});
+
+test('scrape returns ok:false when no JSON-LD on page', async () => {
+  const result = await scrape('https://example.com/empty', {
+    fetch: mockFetch(fixture('recipe-no-ld.html')),
+    now: new Date()
+  });
+  assert.strictEqual(result.ok, false);
+  assert.match(result.reason, /No recipe data/);
+});
+
+test('scrape returns ok:false on non-200', async () => {
+  const result = await scrape('https://example.com/x', {
+    fetch: mockFetch('whatever', { status: 404 }),
+    now: new Date()
+  });
+  assert.strictEqual(result.ok, false);
+  assert.match(result.reason, /404|Couldn't reach/);
+});
+
+test('scrape returns ok:false on non-HTML content type', async () => {
+  const result = await scrape('https://example.com/x', {
+    fetch: mockFetch('{}', { contentType: 'application/json' }),
+    now: new Date()
+  });
+  assert.strictEqual(result.ok, false);
+  assert.match(result.reason, /not HTML|HTML/i);
+});
+
+test('scrape surfaces fetch errors', async () => {
+  const result = await scrape('https://nope.invalid/', {
+    fetch: async () => { throw new Error('ENOTFOUND'); },
+    now: new Date()
+  });
+  assert.strictEqual(result.ok, false);
+  assert.match(result.reason, /Couldn't reach/);
+});

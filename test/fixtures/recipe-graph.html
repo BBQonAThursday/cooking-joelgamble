@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html><head>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "WebSite", "name": "Some Site" },
+      {
+        "@type": ["Recipe", "Article"],
+        "name": "Sectioned Stew",
+        "image": [{ "url": "https://example.com/stew.jpg" }],
+        "recipeIngredient": ["broth", "onion"],
+        "recipeInstructions": [
+          { "@type": "HowToSection", "itemListElement": [
+            { "@type": "HowToStep", "text": "Sauté onion." },
+            { "@type": "HowToStep", "text": "Add broth." }
+          ]}
+        ]
+      }
+    ]
+  }
+  </script>
+</head><body></body></html>
