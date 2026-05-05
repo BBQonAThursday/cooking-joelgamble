@@ -114,3 +114,94 @@ test('tagRecipe does not flip modifiedAfterConfirm when the week is not yet conf
   tagRecipe(state, 'abc', new Date(2026, 4, 5));
   assert.strictEqual(state.weeks[0].modifiedAfterConfirm, false);
 });
+
+const { confirmWeek, unconfirmWeek } = require('../lib/week');
+
+function recipe(id, ingredients) {
+  return { id, title: id, sourceUrl: `https://x/${id}`, ingredients };
+}
+
+test('confirmWeek imports tagged recipes ingredients (deduped)', () => {
+  const state = {
+    recipes: [
+      recipe('a', ['eggs', '2 tbsp salt']),
+      recipe('b', ['flour', 'eggs'])
+    ],
+    weeks: [{ weekStart: '2026-05-04', recipeIds: ['a', 'b'], confirmed: false, modifiedAfterConfirm: false }],
+    grocery: []
+  };
+  const result = confirmWeek(state, new Date(2026, 4, 5));
+  assert.strictEqual(result.ok, true);
+  assert.strictEqual(result.addedCount, 3); // eggs, salt, flour (eggs deduped)
+  assert.strictEqual(state.grocery.length, 3);
+  assert.strictEqual(state.weeks[0].confirmed, true);
+  assert.strictEqual(state.weeks[0].modifiedAfterConfirm, false);
+});
+
+test('confirmWeek skips ingredients already in grocery (string-equal)', () => {
+  const state = {
+    recipes: [recipe('a', ['eggs', 'milk'])],
+    weeks: [{ weekStart: '2026-05-04', recipeIds: ['a'], confirmed: false, modifiedAfterConfirm: false }],
+    grocery: [{ id: 'g_a', text: 'eggs', checked: false }]
+  };
+  const result = confirmWeek(state, new Date(2026, 4, 5));
+  assert.strictEqual(result.addedCount, 1);
+  assert.strictEqual(state.grocery.length, 2);
+  assert.ok(state.grocery.some(g => g.text === 'milk'));
+});
+
+test('confirmWeek returns addedCount=0 when all ingredients are dupes', () => {
+  const state = {
+    recipes: [recipe('a', ['eggs'])],
+    weeks: [{ weekStart: '2026-05-04', recipeIds: ['a'], confirmed: false, modifiedAfterConfirm: false }],
+    grocery: [{ id: 'g_a', text: 'eggs', checked: false }]
+  };
+  const result = confirmWeek(state, new Date(2026, 4, 5));
+  assert.strictEqual(result.ok, true);
+  assert.strictEqual(result.addedCount, 0);
+  assert.strictEqual(state.weeks[0].confirmed, true);
+});
+
+test('confirmWeek rejects when no recipes are tagged', () => {
+  const state = {
+    recipes: [recipe('a', ['eggs'])],
+    weeks: [{ weekStart: '2026-05-04', recipeIds: [], confirmed: false, modifiedAfterConfirm: false }],
+    grocery: []
+  };
+  const result = confirmWeek(state, new Date(2026, 4, 5));
+  assert.deepStrictEqual(result, { ok: false, reason: 'no recipes tagged' });
+  assert.strictEqual(state.weeks[0].confirmed, false);
+});
+
+test('confirmWeek filters out tagged ids that no longer exist in recipes', () => {
+  const state = {
+    recipes: [recipe('a', ['eggs'])],
+    weeks: [{ weekStart: '2026-05-04', recipeIds: ['a', 'deleted-id'], confirmed: false, modifiedAfterConfirm: false }],
+    grocery: []
+  };
+  const result = confirmWeek(state, new Date(2026, 4, 5));
+  assert.strictEqual(result.ok, true);
+  assert.strictEqual(result.addedCount, 1);
+});
+
+test('confirmWeek clears modifiedAfterConfirm', () => {
+  const state = {
+    recipes: [recipe('a', ['eggs'])],
+    weeks: [{ weekStart: '2026-05-04', recipeIds: ['a'], confirmed: true, modifiedAfterConfirm: true }],
+    grocery: []
+  };
+  confirmWeek(state, new Date(2026, 4, 5));
+  assert.strictEqual(state.weeks[0].modifiedAfterConfirm, false);
+});
+
+test('unconfirmWeek clears confirmed and modifiedAfterConfirm without removing grocery items', () => {
+  const state = {
+    recipes: [recipe('a', ['eggs'])],
+    weeks: [{ weekStart: '2026-05-04', recipeIds: ['a'], confirmed: true, modifiedAfterConfirm: true }],
+    grocery: [{ id: 'g_a', text: 'eggs', checked: false }]
+  };
+  unconfirmWeek(state, new Date(2026, 4, 5));
+  assert.strictEqual(state.weeks[0].confirmed, false);
+  assert.strictEqual(state.weeks[0].modifiedAfterConfirm, false);
+  assert.strictEqual(state.grocery.length, 1);
+});
