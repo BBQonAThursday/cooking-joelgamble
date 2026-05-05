@@ -73,3 +73,24 @@ test('findRecipeNode returns null when no Recipe present', () => {
   assert.strictEqual(findRecipeNode([{ '@type': 'WebSite' }]), null);
   assert.strictEqual(findRecipeNode([]), null);
 });
+
+const { parseIsoDuration } = require('../lib/scrape');
+
+test('parseIsoDuration parses hours and minutes', () => {
+  assert.strictEqual(parseIsoDuration('PT1H30M'), 90);
+  assert.strictEqual(parseIsoDuration('PT45M'), 45);
+  assert.strictEqual(parseIsoDuration('PT2H'), 120);
+  assert.strictEqual(parseIsoDuration('PT0H15M'), 15);
+});
+
+test('parseIsoDuration handles seconds (rounded down to whole minutes)', () => {
+  // PT1H30M30S → 90 minutes (we drop seconds for v0)
+  assert.strictEqual(parseIsoDuration('PT1H30M30S'), 90);
+});
+
+test('parseIsoDuration returns null for malformed or missing input', () => {
+  assert.strictEqual(parseIsoDuration(''), null);
+  assert.strictEqual(parseIsoDuration(null), null);
+  assert.strictEqual(parseIsoDuration('30 min'), null);
+  assert.strictEqual(parseIsoDuration('PT'), null);
+});
