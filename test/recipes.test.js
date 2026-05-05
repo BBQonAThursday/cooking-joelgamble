@@ -104,3 +104,21 @@ test('GET /recipes/:id returns 404 for unknown id', async () => {
   const res = await helpers.request(ctx.port, { path: '/recipes/zzzzzzzzzz' });
   assert.strictEqual(res.status, 404);
 });
+
+test('DELETE /recipes/:id removes the recipe and OOB-swaps the panel', async () => {
+  await helpers.request(ctx.port, { method: 'POST', path: '/recipes', body: { url: 'https://example.com/del-test' }});
+  const { idForUrl } = require('../lib/id');
+  const id = idForUrl('https://example.com/del-test');
+
+  const res = await helpers.request(ctx.port, { method: 'DELETE', path: `/recipes/${id}` });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /id="recipes-panel"/);
+  assert.match(res.body, /hx-swap-oob="true"/);
+  assert.match(res.body, /No recipes yet/);
+  assert.match(res.headers['x-status-toast'] || '', /Deleted/);
+});
+
+test('DELETE /recipes/:id returns 404 for unknown id', async () => {
+  const res = await helpers.request(ctx.port, { method: 'DELETE', path: '/recipes/zzzzzzzzzz' });
+  assert.strictEqual(res.status, 404);
+});

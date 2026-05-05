@@ -60,4 +60,14 @@ router.get('/recipes/:id', (req, res) => {
   res.render('recipe.njk', { recipe: decorated });
 });
 
+router.delete('/recipes/:id', (req, res) => {
+  const state = storage.get();
+  const idx = state.recipes.findIndex(r => r.id === req.params.id);
+  if (idx < 0) return res.status(404).type('text').send('Not found');
+  const [removed] = state.recipes.splice(idx, 1);
+  storage.save();
+  setToast(res, `Deleted: ${removed.title}`);
+  respondWithUpdates(req, res, { panels: ['partials/recipes-panel.njk'] });
+});
+
 module.exports = router;

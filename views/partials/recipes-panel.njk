@@ -4,6 +4,11 @@
       {% for r in recipes %}
         <li class="recipe-card" data-id="{{ r.id }}">
           <a href="/recipes/{{ r.id }}">{{ r.title }}</a>
+          <button class="delete-btn"
+                  hx-delete="/recipes/{{ r.id }}"
+                  hx-swap="none"
+                  hx-confirm="Delete this recipe?"
+                  aria-label="Delete">×</button>
         </li>
       {% endfor %}
     </ul>
