@@ -115,3 +115,26 @@ test('buildWeeklyView returns an empty active week when none exists in state', (
   assert.strictEqual(view.week.weekStart, '2026-05-04');
   assert.strictEqual(view.week.confirmed, false);
 });
+
+const { buildGroceryView } = require('../lib/calc');
+
+test('buildGroceryView decorates grocery list with counts', () => {
+  const state = {
+    grocery: [
+      { id: 'g_a', text: 'eggs', checked: false },
+      { id: 'g_b', text: 'milk', checked: true }
+    ]
+  };
+  const view = buildGroceryView(state);
+  assert.strictEqual(view.activeTab, 'grocery');
+  assert.strictEqual(view.grocery.length, 2);
+  assert.strictEqual(view.hasGrocery, true);
+  assert.strictEqual(view.checkedCount, 1);
+});
+
+test('buildGroceryView handles empty/missing grocery', () => {
+  const view = buildGroceryView({});
+  assert.deepStrictEqual(view.grocery, []);
+  assert.strictEqual(view.hasGrocery, false);
+  assert.strictEqual(view.checkedCount, 0);
+});
