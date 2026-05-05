@@ -138,3 +138,42 @@ test('buildGroceryView handles empty/missing grocery', () => {
   assert.strictEqual(view.hasGrocery, false);
   assert.strictEqual(view.checkedCount, 0);
 });
+
+const { buildHistoryView } = require('../lib/calc');
+
+test('buildHistoryView excludes the active week and sorts newest first', () => {
+  const state = {
+    recipes: [
+      { id: 'a', title: 'A' },
+      { id: 'b', title: 'B' }
+    ],
+    weeks: [
+      { weekStart: '2026-04-20', recipeIds: ['a'], confirmed: true, modifiedAfterConfirm: false },
+      { weekStart: '2026-05-04', recipeIds: ['a','b'], confirmed: false, modifiedAfterConfirm: false }, // active
+      { weekStart: '2026-04-27', recipeIds: ['b'], confirmed: true, modifiedAfterConfirm: false }
+    ]
+  };
+  const view = buildHistoryView(state, new Date(2026, 4, 5));
+  assert.strictEqual(view.activeTab, 'history');
+  assert.strictEqual(view.pastWeeks.length, 2);
+  assert.strictEqual(view.pastWeeks[0].weekStart, '2026-04-27');
+  assert.strictEqual(view.pastWeeks[1].weekStart, '2026-04-20');
+});
+
+test('buildHistoryView resolves recipe titles, filtering dangling ids', () => {
+  const state = {
+    recipes: [{ id: 'a', title: 'A' }],
+    weeks: [
+      { weekStart: '2026-04-27', recipeIds: ['a', 'deleted'], confirmed: true, modifiedAfterConfirm: false }
+    ]
+  };
+  const view = buildHistoryView(state, new Date(2026, 4, 5));
+  assert.strictEqual(view.pastWeeks[0].recipes.length, 1);
+  assert.strictEqual(view.pastWeeks[0].recipes[0].title, 'A');
+});
+
+test('buildHistoryView returns hasHistory=false when no past weeks', () => {
+  const view = buildHistoryView({ recipes: [], weeks: [] }, new Date(2026, 4, 5));
+  assert.strictEqual(view.hasHistory, false);
+  assert.deepStrictEqual(view.pastWeeks, []);
+});
