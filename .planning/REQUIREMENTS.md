@@ -74,28 +74,26 @@ These are anti-features captured during research and decision-making. Reasoning 
 
 ## Traceability
 
-(Filled in by roadmap creation.)
-
 | REQ-ID | Phase | Notes |
 |--------|-------|-------|
-| FND-01 | TBD | |
-| FND-02 | TBD | |
-| FND-03 | TBD | |
-| FND-04 | TBD | |
-| MATCH-01 | TBD | |
-| MATCH-02 | TBD | |
-| MATCH-03 | TBD | |
-| EXTR-01 | TBD | |
-| EXTR-02 | TBD | |
-| EXTR-03 | TBD | |
-| EXTR-04 | TBD | |
-| LIB-01 | TBD | |
-| LIB-02 | TBD | |
-| LIB-03 | TBD | |
-| LIB-04 | TBD | |
-| LIB-05 | TBD | |
-| LIB-06 | TBD | |
-| FIX-01 | TBD | |
-| FIX-02 | TBD | |
-| FIX-03 | TBD | |
-| FIX-04 | TBD | |
+| FND-01 | Phase 1 | Atomic with FND-02, FND-03, FND-04 |
+| FND-02 | Phase 1 | Atomic with FND-01, FND-03, FND-04 |
+| FND-03 | Phase 1 + 2 | Skeleton in Phase 1; full helpers in Phase 2 |
+| FND-04 | Phase 1 | Ships in same commit as storage migration |
+| MATCH-01 | Phase 3 | |
+| MATCH-02 | Phase 3 | |
+| MATCH-03 | Phase 3 | `findEntryByText` returns entry id |
+| EXTR-01 | Phase 4 | Requires Phase 2 normalization |
+| EXTR-02 | Phase 2 | Must precede EXTR-01 and EXTR-03 |
+| EXTR-03 | Phase 4 | Requires Phase 2 normalization |
+| EXTR-04 | Phase 2 | Ships with normalization helpers |
+| LIB-01 | Phase 5 | Nav tab added last in library phase |
+| LIB-02 | Phase 5 | |
+| LIB-03 | Phase 5 | |
+| LIB-04 | Phase 5 | |
+| LIB-05 | Phase 5 | |
+| LIB-06 | Phase 5 | |
+| FIX-01 | Phase 6 | Requires Phase 5 routes |
+| FIX-02 | Phase 6 | |
+| FIX-03 | Phase 6 | |
+| FIX-04 | Phase 6 | |
