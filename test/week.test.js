@@ -67,3 +67,50 @@ test('ensureCurrentWeek tolerates missing weeks array', () => {
   assert.ok(Array.isArray(state.weeks));
   assert.strictEqual(state.weeks[0], week);
 });
+
+const { tagRecipe } = require('../lib/week');
+
+test('tagRecipe adds a recipe id to the active week', () => {
+  const state = { recipes: [{ id: 'abc' }], weeks: [], grocery: [] };
+  const result = tagRecipe(state, 'abc', new Date(2026, 4, 5));
+  assert.deepStrictEqual(result, { ok: true, isTagged: true });
+  assert.deepStrictEqual(state.weeks[0].recipeIds, ['abc']);
+});
+
+test('tagRecipe toggles off a previously tagged recipe', () => {
+  const state = {
+    recipes: [{ id: 'abc' }],
+    weeks: [{ weekStart: '2026-05-04', recipeIds: ['abc'], confirmed: false, modifiedAfterConfirm: false }],
+    grocery: []
+  };
+  const result = tagRecipe(state, 'abc', new Date(2026, 4, 5));
+  assert.deepStrictEqual(result, { ok: true, isTagged: false });
+  assert.deepStrictEqual(state.weeks[0].recipeIds, []);
+});
+
+test('tagRecipe rejects an unknown recipe id', () => {
+  const state = { recipes: [{ id: 'abc' }], weeks: [], grocery: [] };
+  const result = tagRecipe(state, 'zzz', new Date(2026, 4, 5));
+  assert.deepStrictEqual(result, { ok: false, reason: 'unknown recipe' });
+  assert.strictEqual(state.weeks.length, 0);
+});
+
+test('tagRecipe sets modifiedAfterConfirm when the active week was confirmed', () => {
+  const state = {
+    recipes: [{ id: 'abc' }, { id: 'def' }],
+    weeks: [{ weekStart: '2026-05-04', recipeIds: ['abc'], confirmed: true, modifiedAfterConfirm: false }],
+    grocery: []
+  };
+  tagRecipe(state, 'def', new Date(2026, 4, 5));
+  assert.strictEqual(state.weeks[0].modifiedAfterConfirm, true);
+});
+
+test('tagRecipe does not flip modifiedAfterConfirm when the week is not yet confirmed', () => {
+  const state = {
+    recipes: [{ id: 'abc' }],
+    weeks: [{ weekStart: '2026-05-04', recipeIds: [], confirmed: false, modifiedAfterConfirm: false }],
+    grocery: []
+  };
+  tagRecipe(state, 'abc', new Date(2026, 4, 5));
+  assert.strictEqual(state.weeks[0].modifiedAfterConfirm, false);
+});
