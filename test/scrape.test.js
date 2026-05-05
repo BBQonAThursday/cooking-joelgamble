@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { extractJsonLdScripts } = require('../lib/scrape');
+const { extractJsonLdScripts, findRecipeNode } = require('../lib/scrape');
 
 test('extractJsonLdScripts pulls a single ld+json block', () => {
   const html = `<html><head>
@@ -45,4 +45,31 @@ test('extractJsonLdScripts returns [] when no ld+json present', () => {
   const html = `<html><head><script>alert(1)</script></head></html>`;
   const result = extractJsonLdScripts(html);
   assert.deepStrictEqual(result, []);
+});
+
+test('findRecipeNode returns the node when @type is "Recipe"', () => {
+  const node = { '@type': 'Recipe', name: 'X' };
+  assert.strictEqual(findRecipeNode([node]), node);
+});
+
+test('findRecipeNode returns the node when @type is an array containing "Recipe"', () => {
+  const node = { '@type': ['Recipe', 'Article'], name: 'Y' };
+  assert.strictEqual(findRecipeNode([node]), node);
+});
+
+test('findRecipeNode walks @graph entries', () => {
+  const recipe = { '@type': 'Recipe', name: 'Z' };
+  const wrapper = { '@graph': [{ '@type': 'WebPage' }, recipe] };
+  assert.strictEqual(findRecipeNode([wrapper]), recipe);
+});
+
+test('findRecipeNode walks nested arrays', () => {
+  const recipe = { '@type': 'Recipe', name: 'Q' };
+  const tree = [[{ '@type': 'WebSite' }, [recipe]]];
+  assert.strictEqual(findRecipeNode(tree), recipe);
+});
+
+test('findRecipeNode returns null when no Recipe present', () => {
+  assert.strictEqual(findRecipeNode([{ '@type': 'WebSite' }]), null);
+  assert.strictEqual(findRecipeNode([]), null);
 });
