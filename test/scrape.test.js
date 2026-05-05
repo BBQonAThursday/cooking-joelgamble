@@ -247,11 +247,13 @@ function fixture(name) {
   return fs.readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
 }
 
-function mockFetch(html, { status = 200, contentType = 'text/html; charset=utf-8' } = {}) {
+function mockFetch(html, { status = 200, contentType = 'text/html; charset=utf-8', responseHeaders = {} } = {}) {
+  const headerMap = { 'content-type': contentType };
+  for (const [k, v] of Object.entries(responseHeaders)) headerMap[k.toLowerCase()] = v;
   return async (_url, _opts) => ({
     ok: status >= 200 && status < 300,
     status,
-    headers: { get: name => name.toLowerCase() === 'content-type' ? contentType : null },
+    headers: { get: name => headerMap[name.toLowerCase()] != null ? headerMap[name.toLowerCase()] : null },
     text: async () => html,
     body: { getReader: () => null } // unused; we use text()
   });
@@ -316,4 +318,32 @@ test('scrape surfaces fetch errors', async () => {
   });
   assert.strictEqual(result.ok, false);
   assert.match(result.reason, /Couldn't reach/);
+});
+
+test('scrape sends Accept and Accept-Language request headers', async () => {
+  let captured;
+  const inner = mockFetch(fixture('recipe-basic.html'));
+  const captureFetch = async (url, opts) => {
+    captured = opts;
+    return inner(url, opts);
+  };
+  await scrape('https://example.com/basic', { fetch: captureFetch, now: new Date() });
+  assert.ok(captured && captured.headers, 'expected fetch to receive headers');
+  const h = captured.headers;
+  const accept = h.Accept || h.accept;
+  const acceptLang = h['Accept-Language'] || h['accept-language'];
+  assert.ok(accept, `expected Accept header to be set, got headers=${JSON.stringify(h)}`);
+  assert.ok(acceptLang, `expected Accept-Language header to be set, got headers=${JSON.stringify(h)}`);
+});
+
+test('scrape returns a clearer reason when Cloudflare bot-mitigation blocks the request', async () => {
+  const result = await scrape('https://www.foodandwine.com/recipes/x', {
+    fetch: mockFetch('<html>Just a moment...</html>', {
+      status: 403,
+      responseHeaders: { 'cf-mitigated': 'challenge', 'server': 'cloudflare' }
+    }),
+    now: new Date()
+  });
+  assert.strictEqual(result.ok, false);
+  assert.match(result.reason, /bot|blocked/i);
 });
