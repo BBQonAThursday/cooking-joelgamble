@@ -1,7 +1,7 @@
 const express = require('express');
 const storage = require('../lib/storage');
 const { buildWeeklyView, sourceDomain, formatTotalTime } = require('../lib/calc');
-const { tagRecipe } = require('../lib/week');
+const { tagRecipe, confirmWeek, unconfirmWeek } = require('../lib/week');
 const { respondWithUpdates } = require('../lib/render');
 
 const router = express.Router();
@@ -38,6 +38,42 @@ router.post('/this-week/recipes/:id', (req, res) => {
   respondWithUpdates(req, res, {
     panels: ['partials/recipe-card.njk', 'partials/tag-toggle.njk'],
     extra: { r: decoratedRecipe, id: decoratedRecipe.id, isTagged: result.isTagged }
+  });
+});
+
+router.post('/this-week/confirm', (req, res) => {
+  const today = new Date();
+  const state = storage.get();
+  const result = confirmWeek(state, today);
+  if (!result.ok && result.reason === 'no recipes tagged') {
+    setToast(res, 'No recipes tagged for this week');
+    // No state change → no OOB needed; respond with empty body but the toast.
+    return res.type('html').send('');
+  }
+  storage.save();
+  if (result.addedCount === 0) {
+    setToast(res, 'Already up to date - 0 items added');
+  } else {
+    setToast(res, `Added ${result.addedCount} item${result.addedCount === 1 ? '' : 's'} to grocery list`);
+  }
+  // OOB-swap the week banner.
+  const view = buildWeeklyView(state, today);
+  respondWithUpdates(req, res, {
+    panels: ['partials/week-banner.njk'],
+    extra: view
+  });
+});
+
+router.post('/this-week/unconfirm', (req, res) => {
+  const today = new Date();
+  const state = storage.get();
+  unconfirmWeek(state, today);
+  storage.save();
+  setToast(res, 'Confirmation cleared');
+  const view = buildWeeklyView(state, today);
+  respondWithUpdates(req, res, {
+    panels: ['partials/week-banner.njk'],
+    extra: view
   });
 });
 

@@ -68,3 +68,38 @@ test('POST /this-week/recipes/:id 404s for unknown id', async () => {
   const res = await helpers.request(ctx.port, { method: 'POST', path: '/this-week/recipes/zzzzzzzzzz' });
   assert.strictEqual(res.status, 404);
 });
+
+test('POST /this-week/confirm adds tagged recipe ingredients to grocery', async () => {
+  const id = await saveRecipe(ctx.port, 'https://example.com/wk-confirm-1');
+  await helpers.request(ctx.port, { method: 'POST', path: `/this-week/recipes/${id}` });
+  const res = await helpers.request(ctx.port, { method: 'POST', path: '/this-week/confirm' });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /id="week-banner"/);
+  assert.match(res.body, /Confirmed ✓/);
+  assert.match(res.headers['x-status-toast'] || '', /Added 1 item/);
+});
+
+test('POST /this-week/confirm with no tags returns the no-recipes toast', async () => {
+  const res = await helpers.request(ctx.port, { method: 'POST', path: '/this-week/confirm' });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.headers['x-status-toast'] || '', /No recipes tagged for this week/);
+});
+
+test('POST /this-week/confirm with all dupes returns "already up to date" toast', async () => {
+  const id = await saveRecipe(ctx.port, 'https://example.com/wk-confirm-2');
+  await helpers.request(ctx.port, { method: 'POST', path: `/this-week/recipes/${id}` });
+  await helpers.request(ctx.port, { method: 'POST', path: '/this-week/confirm' });
+  // Second confirm — nothing to add
+  const res = await helpers.request(ctx.port, { method: 'POST', path: '/this-week/confirm' });
+  assert.match(res.headers['x-status-toast'] || '', /Already up to date/);
+});
+
+test('POST /this-week/unconfirm clears confirmation without touching grocery', async () => {
+  const id = await saveRecipe(ctx.port, 'https://example.com/wk-unconf-1');
+  await helpers.request(ctx.port, { method: 'POST', path: `/this-week/recipes/${id}` });
+  await helpers.request(ctx.port, { method: 'POST', path: '/this-week/confirm' });
+  const res = await helpers.request(ctx.port, { method: 'POST', path: '/this-week/unconfirm' });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.headers['x-status-toast'] || '', /Confirmation cleared/);
+  assert.doesNotMatch(res.body, /Confirmed ✓/);
+});
