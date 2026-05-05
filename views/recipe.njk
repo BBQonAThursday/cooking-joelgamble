@@ -18,9 +18,14 @@
     <div class="recipe-body">
       <section class="recipe-ingredients">
         <h2>Ingredients</h2>
-        <ul>
-          {% for ing in recipe.ingredients %}<li>{{ ing }}</li>{% endfor %}
-        </ul>
+        {% for group in recipe.ingredientGroups %}
+          <h3 class="ingredient-category">{{ group.category }}</h3>
+          <ul>
+            {% for ing in group.items %}<li>{{ ing }}</li>{% endfor %}
+          </ul>
+        {% else %}
+          <p class="empty">No ingredients found.</p>
+        {% endfor %}
       </section>
       <section class="recipe-instructions">
         <h2>Instructions</h2>

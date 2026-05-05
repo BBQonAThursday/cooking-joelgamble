@@ -3,7 +3,7 @@ const storage = require('../lib/storage');
 const scrapeMod = require('../lib/scrape');
 const { idForUrl } = require('../lib/id');
 const { respondWithUpdates } = require('../lib/render');
-const { sourceDomain, formatTotalTime } = require('../lib/calc');
+const { sourceDomain, formatTotalTime, decorateIngredients } = require('../lib/calc');
 
 const router = express.Router();
 
@@ -60,7 +60,8 @@ router.get('/recipes/:id', (req, res) => {
     ...recipe,
     sourceDomain: sourceDomain(recipe.sourceUrl),
     totalTimeLabel: formatTotalTime(recipe.totalMinutes),
-    isTagged
+    isTagged,
+    ingredientGroups: decorateIngredients(recipe.ingredients)
   };
   res.render('recipe.njk', { recipe: decorated });
 });

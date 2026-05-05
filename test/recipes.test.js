@@ -148,3 +148,33 @@ test('GET /recipes/:id renders the tag-toggle next to the title', async () => {
   // Untagged by default
   assert.doesNotMatch(res.body, /class="tag-toggle is-tagged"/);
 });
+
+test('GET /recipes/:id renders ingredients grouped by category', async () => {
+  // Add a recipe directly to state for richer category coverage.
+  const storage = require('../lib/storage');
+  const state = storage.get();
+  state.recipes.push({
+    id: 'multicat',
+    addedAt: '2026-05-01T00:00:00Z',
+    sourceUrl: 'https://example.com/multicat',
+    title: 'Multi-Category Recipe',
+    description: '',
+    imageUrl: null,
+    servings: '4',
+    totalMinutes: 30,
+    ingredients: ['500g chicken', '1 onion', '1 tsp salt', '2 tbsp olive oil'],
+    instructions: ['cook']
+  });
+  storage.save();
+
+  const res = await helpers.request(ctx.port, { path: '/recipes/multicat' });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /<h3 class="ingredient-category">Protein<\/h3>/);
+  assert.match(res.body, /<h3 class="ingredient-category">Veg<\/h3>/);
+  assert.match(res.body, /<h3 class="ingredient-category">Seasoning<\/h3>/);
+  assert.match(res.body, /<h3 class="ingredient-category">Flavor<\/h3>/);
+  assert.match(res.body, />500g chicken</);
+  assert.match(res.body, />1 onion</);
+  assert.match(res.body, />1 tsp salt</);
+  assert.match(res.body, />2 tbsp olive oil</);
+});
