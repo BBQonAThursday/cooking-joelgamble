@@ -1,0 +1,13 @@
+<li class="grocery-item{% if item.checked %} is-checked{% endif %}" id="grocery-item-{{ item.id }}">
+  <button class="grocery-check"
+          hx-post="/grocery/{{ item.id }}/check"
+          hx-swap="none"
+          aria-label="{% if item.checked %}Uncheck{% else %}Check{% endif %} {{ item.text }}">
+    {% if item.checked %}✓{% endif %}
+  </button>
+  <span class="grocery-text">{{ item.text }}</span>
+  <button class="grocery-delete"
+          hx-delete="/grocery/{{ item.id }}"
+          hx-swap="none"
+          aria-label="Delete {{ item.text }}">×</button>
+</li>

@@ -1,0 +1,9 @@
+<ul id="grocery-list" class="grocery-list">
+  {% if hasGrocery %}
+    {% for item in grocery %}
+      {% include "partials/grocery-item.njk" %}
+    {% endfor %}
+  {% else %}
+    <li class="empty grocery-empty">Grocery list is empty.</li>
+  {% endif %}
+</ul>

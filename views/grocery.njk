@@ -1,0 +1,21 @@
+{% extends "layout.njk" %}
+{% block content %}
+  <main class="app">
+    <header class="app-header">
+      <h1>Grocery</h1>
+    </header>
+    <form class="grocery-add"
+          hx-post="/grocery"
+          hx-swap="none"
+          hx-on:htmx:after-request="if(event.detail.successful) this.reset()">
+      <input type="text" name="text" placeholder="Add an item" required maxlength="500" autocomplete="off">
+      <button type="submit">Add</button>
+    </form>
+    {% include "partials/grocery-list.njk" %}
+    {% if checkedCount > 0 %}
+      <button class="grocery-clear-checked"
+              hx-post="/grocery/clear-checked"
+              hx-swap="none">Clear {{ checkedCount }} checked item{{ 's' if checkedCount != 1 else '' }}</button>
+    {% endif %}
+  </main>
+{% endblock %}
