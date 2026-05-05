@@ -69,3 +69,49 @@ test('buildView returns isTagged=false when there is no active week', () => {
   const view = buildView(state, new Date(2026, 4, 5));
   assert.strictEqual(view.recipes[0].isTagged, false);
 });
+
+const { buildWeeklyView } = require('../lib/calc');
+
+test('buildWeeklyView returns the active week and decorated tagged recipes', () => {
+  const state = {
+    recipes: [
+      { id: 'a', title: 'A', sourceUrl: 'https://x.com/a', totalMinutes: 30, ingredients: ['eggs'] },
+      { id: 'b', title: 'B', sourceUrl: 'https://x.com/b', totalMinutes: 60, ingredients: ['flour'] }
+    ],
+    weeks: [{ weekStart: '2026-05-04', recipeIds: ['a', 'b'], confirmed: false, modifiedAfterConfirm: false }]
+  };
+  const view = buildWeeklyView(state, new Date(2026, 4, 5));
+  assert.strictEqual(view.activeTab, 'this-week');
+  assert.strictEqual(view.weekRecipeCount, 2);
+  assert.strictEqual(view.weekRecipes[0].title, 'A');
+  assert.strictEqual(view.weekRecipes[0].sourceDomain, 'x.com');
+  assert.strictEqual(view.weekRecipes[0].totalTimeLabel, '30m');
+  assert.strictEqual(view.weekRecipes[0].isTagged, true);
+});
+
+test('buildWeeklyView filters out dangling recipe ids', () => {
+  const state = {
+    recipes: [{ id: 'a', title: 'A', sourceUrl: 'https://x.com/a', ingredients: [] }],
+    weeks: [{ weekStart: '2026-05-04', recipeIds: ['a', 'deleted'], confirmed: false, modifiedAfterConfirm: false }]
+  };
+  const view = buildWeeklyView(state, new Date(2026, 4, 5));
+  assert.strictEqual(view.weekRecipeCount, 1);
+  assert.strictEqual(view.weekRecipes[0].id, 'a');
+});
+
+test('buildWeeklyView reports pendingIngredientCount minus existing grocery dupes', () => {
+  const state = {
+    recipes: [{ id: 'a', title: 'A', sourceUrl: 'https://x.com/a', ingredients: ['eggs', 'milk', 'flour'] }],
+    weeks: [{ weekStart: '2026-05-04', recipeIds: ['a'], confirmed: false, modifiedAfterConfirm: false }],
+    grocery: [{ id: 'g_a', text: 'eggs', checked: false }]
+  };
+  const view = buildWeeklyView(state, new Date(2026, 4, 5));
+  assert.strictEqual(view.pendingIngredientCount, 2); // milk, flour
+});
+
+test('buildWeeklyView returns an empty active week when none exists in state', () => {
+  const view = buildWeeklyView({ recipes: [] }, new Date(2026, 4, 5));
+  assert.strictEqual(view.weekRecipeCount, 0);
+  assert.strictEqual(view.week.weekStart, '2026-05-04');
+  assert.strictEqual(view.week.confirmed, false);
+});
