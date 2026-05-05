@@ -12,10 +12,5 @@
       <button type="submit">Add</button>
     </form>
     {% include "partials/grocery-list.njk" %}
-    {% if checkedCount > 0 %}
-      <button class="grocery-clear-checked"
-              hx-post="/grocery/clear-checked"
-              hx-swap="none">Clear {{ checkedCount }} checked item{{ 's' if checkedCount != 1 else '' }}</button>
-    {% endif %}
   </main>
 {% endblock %}

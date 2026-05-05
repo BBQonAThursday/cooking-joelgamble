@@ -1,9 +1,28 @@
-<ul id="grocery-list" class="grocery-list">
-  {% if hasGrocery %}
-    {% for item in grocery %}
-      {% include "partials/grocery-item.njk" %}
-    {% endfor %}
-  {% else %}
-    <li class="empty grocery-empty">Grocery list is empty.</li>
+<section id="grocery-list" class="grocery-list">
+  {% for group in categorizedGroups %}
+    <div class="grocery-group">
+      <h3 class="grocery-category">{{ group.category }}</h3>
+      <ul class="grocery-items">
+        {% for item in group.items %}{% include "partials/grocery-item.njk" %}{% endfor %}
+      </ul>
+    </div>
+  {% endfor %}
+
+  {% if hasClosed %}
+    <div class="grocery-closed">
+      <div class="grocery-closed-header">
+        <h3>Got it</h3>
+        <button class="grocery-clear-closed"
+                hx-post="/grocery/clear-checked"
+                hx-swap="none">Clear all</button>
+      </div>
+      <ul class="grocery-items">
+        {% for item in closedItems %}{% include "partials/grocery-item.njk" %}{% endfor %}
+      </ul>
+    </div>
   {% endif %}
-</ul>
+
+  {% if not hasGrocery %}
+    <p class="empty grocery-empty">Grocery list is empty.</p>
+  {% endif %}
+</section>

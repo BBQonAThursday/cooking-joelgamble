@@ -29,7 +29,7 @@ test('GET /grocery renders the page with empty state', async () => {
   assert.match(res.body, /Grocery list is empty/);
 });
 
-test('POST /grocery adds an item and OOB-swaps the list', async () => {
+test('POST /grocery adds an item and OOB-swaps the list with category grouping', async () => {
   const res = await helpers.request(ctx.port, {
     method: 'POST', path: '/grocery',
     body: { text: '  eggs  ' }
@@ -37,6 +37,7 @@ test('POST /grocery adds an item and OOB-swaps the list', async () => {
   assert.strictEqual(res.status, 200);
   assert.match(res.body, /id="grocery-list"/);
   assert.match(res.body, /hx-swap-oob="true"/);
+  assert.match(res.body, /<h3 class="grocery-category">Dairy<\/h3>/);
   assert.match(res.body, />eggs</);
   assert.match(res.headers['x-status-toast'] || '', /Added/);
 });

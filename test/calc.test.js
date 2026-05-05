@@ -118,24 +118,68 @@ test('buildWeeklyView returns an empty active week when none exists in state', (
 
 const { buildGroceryView } = require('../lib/calc');
 
-test('buildGroceryView decorates grocery list with counts', () => {
+test('buildGroceryView partitions checked vs unchecked', () => {
   const state = {
     grocery: [
-      { id: 'g_a', text: 'eggs', checked: false },
-      { id: 'g_b', text: 'milk', checked: true }
+      { id: 'g_a', text: '1 onion', checked: false },
+      { id: 'g_b', text: '1 cup milk', checked: true },
+      { id: 'g_c', text: '1 tsp salt', checked: false }
     ]
   };
   const view = buildGroceryView(state);
   assert.strictEqual(view.activeTab, 'grocery');
-  assert.strictEqual(view.grocery.length, 2);
   assert.strictEqual(view.hasGrocery, true);
+  assert.strictEqual(view.hasCategorized, true);
+  assert.strictEqual(view.hasClosed, true);
   assert.strictEqual(view.checkedCount, 1);
+  assert.strictEqual(view.closedItems.length, 1);
+  assert.strictEqual(view.closedItems[0].id, 'g_b');
 });
 
-test('buildGroceryView handles empty/missing grocery', () => {
+test('buildGroceryView groups unchecked items by grocery category in canonical order', () => {
+  const state = {
+    grocery: [
+      { id: 'g_a', text: '1 cup milk', checked: false },
+      { id: 'g_b', text: '1 onion', checked: false },
+      { id: 'g_c', text: '500g chicken', checked: false }
+    ]
+  };
+  const view = buildGroceryView(state);
+  // GROCERY_CATEGORIES order: Produce, Meat, Dairy, Aisle, Frozen, Other
+  assert.deepStrictEqual(view.categorizedGroups.map(g => g.category), ['Produce', 'Meat', 'Dairy']);
+  assert.strictEqual(view.categorizedGroups[0].items[0].text, '1 onion');
+  assert.strictEqual(view.categorizedGroups[1].items[0].text, '500g chicken');
+  assert.strictEqual(view.categorizedGroups[2].items[0].text, '1 cup milk');
+});
+
+test('buildGroceryView omits empty category groups', () => {
+  const state = {
+    grocery: [{ id: 'g_a', text: '1 onion', checked: false }]
+  };
+  const view = buildGroceryView(state);
+  assert.strictEqual(view.categorizedGroups.length, 1);
+  assert.strictEqual(view.categorizedGroups[0].category, 'Produce');
+});
+
+test('buildGroceryView with only checked items shows hasCategorized=false hasClosed=true', () => {
+  const state = {
+    grocery: [{ id: 'g_a', text: 'eggs', checked: true }]
+  };
+  const view = buildGroceryView(state);
+  assert.strictEqual(view.hasGrocery, true);
+  assert.strictEqual(view.hasCategorized, false);
+  assert.strictEqual(view.hasClosed, true);
+  assert.strictEqual(view.categorizedGroups.length, 0);
+  assert.strictEqual(view.closedItems.length, 1);
+});
+
+test('buildGroceryView empty state', () => {
   const view = buildGroceryView({});
-  assert.deepStrictEqual(view.grocery, []);
   assert.strictEqual(view.hasGrocery, false);
+  assert.strictEqual(view.hasCategorized, false);
+  assert.strictEqual(view.hasClosed, false);
+  assert.deepStrictEqual(view.categorizedGroups, []);
+  assert.deepStrictEqual(view.closedItems, []);
   assert.strictEqual(view.checkedCount, 0);
 });
 
