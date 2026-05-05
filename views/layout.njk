@@ -8,6 +8,12 @@
   <script src="/vendor/htmx.min.js" defer></script>
 </head>
 <body>
+  <nav class="tabs">
+    <a href="/" class="tab{% if activeTab == 'recipes' %} active{% endif %}">Recipes</a>
+    <a href="/this-week" class="tab{% if activeTab == 'this-week' %} active{% endif %}">This Week</a>
+    <a href="/grocery" class="tab{% if activeTab == 'grocery' %} active{% endif %}">Grocery</a>
+    <a href="/history" class="tab{% if activeTab == 'history' %} active{% endif %}">History</a>
+  </nav>
   {% block content %}{% endblock %}
   <div class="status-toast" id="status-toast"></div>
   <script>

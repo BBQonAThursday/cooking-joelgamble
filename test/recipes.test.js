@@ -122,3 +122,12 @@ test('DELETE /recipes/:id returns 404 for unknown id', async () => {
   const res = await helpers.request(ctx.port, { method: 'DELETE', path: '/recipes/zzzzzzzzzz' });
   assert.strictEqual(res.status, 404);
 });
+
+test('GET / renders the top tabs with Recipes active', async () => {
+  const res = await helpers.request(ctx.port, { path: '/' });
+  assert.match(res.body, /<nav class="tabs">/);
+  assert.match(res.body, /href="\/"[^>]*class="tab active"[^>]*>Recipes/);
+  assert.match(res.body, /href="\/this-week"/);
+  assert.match(res.body, /href="\/grocery"/);
+  assert.match(res.body, /href="\/history"/);
+});
