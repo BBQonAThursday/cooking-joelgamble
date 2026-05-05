@@ -58,3 +58,42 @@ test('save uses atomic temp-file rename (state.json.tmp does not linger)', () =>
   assert.ok(fs.existsSync(path.join(dir, 'state.json')));
   assert.ok(!fs.existsSync(path.join(dir, 'state.json.tmp')));
 });
+
+test('migrate fills missing weeks onto an existing state', () => {
+  const m = storage.migrateForTest({ recipes: [] });
+  assert.deepStrictEqual(m.weeks, []);
+});
+
+test('migrate fills missing grocery onto an existing state', () => {
+  const m = storage.migrateForTest({ recipes: [] });
+  assert.deepStrictEqual(m.grocery, []);
+});
+
+test('migrate coerces non-array weeks to []', () => {
+  const m = storage.migrateForTest({ recipes: [], weeks: 'nope' });
+  assert.deepStrictEqual(m.weeks, []);
+});
+
+test('migrate coerces non-array grocery to []', () => {
+  const m = storage.migrateForTest({ recipes: [], grocery: { not: 'an array' } });
+  assert.deepStrictEqual(m.grocery, []);
+});
+
+test('migrate preserves existing weeks and grocery', () => {
+  const existing = {
+    recipes: [],
+    weeks: [{ weekStart: '2026-04-27', recipeIds: ['x'], confirmed: true, modifiedAfterConfirm: false }],
+    grocery: [{ id: 'g_a', text: 'eggs', checked: false }]
+  };
+  const m = storage.migrateForTest(existing);
+  assert.strictEqual(m.weeks.length, 1);
+  assert.strictEqual(m.weeks[0].weekStart, '2026-04-27');
+  assert.strictEqual(m.grocery.length, 1);
+  assert.strictEqual(m.grocery[0].text, 'eggs');
+});
+
+test('defaultState contains empty weeks and grocery arrays', () => {
+  const s = storage.defaultState();
+  assert.deepStrictEqual(s.weeks, []);
+  assert.deepStrictEqual(s.grocery, []);
+});
