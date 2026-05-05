@@ -52,10 +52,15 @@ router.get('/recipes/:id', (req, res) => {
   const state = storage.get();
   const recipe = state.recipes.find(r => r.id === req.params.id);
   if (!recipe) return res.status(404).type('text').send('Not found');
+  const { mondayOf } = require('../lib/week');
+  const monday = mondayOf(new Date());
+  const week = (state.weeks || []).find(w => w.weekStart === monday);
+  const isTagged = !!(week && week.recipeIds.includes(recipe.id));
   const decorated = {
     ...recipe,
     sourceDomain: sourceDomain(recipe.sourceUrl),
-    totalTimeLabel: formatTotalTime(recipe.totalMinutes)
+    totalTimeLabel: formatTotalTime(recipe.totalMinutes),
+    isTagged
   };
   res.render('recipe.njk', { recipe: decorated });
 });

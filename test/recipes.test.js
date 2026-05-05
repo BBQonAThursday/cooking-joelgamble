@@ -138,3 +138,13 @@ test('GET / shows an untagged tag-toggle on each recipe card', async () => {
   assert.match(res.body, /<button[^>]*class="tag-toggle"[^>]*hx-post="\/this-week\/recipes\/[a-z0-9]+"/);
   assert.doesNotMatch(res.body, /class="tag-toggle is-tagged"/);
 });
+
+test('GET /recipes/:id renders the tag-toggle next to the title', async () => {
+  await helpers.request(ctx.port, { method: 'POST', path: '/recipes', body: { url: 'https://example.com/detail-test' }});
+  const { idForUrl } = require('../lib/id');
+  const id = idForUrl('https://example.com/detail-test');
+  const res = await helpers.request(ctx.port, { path: `/recipes/${id}` });
+  assert.match(res.body, new RegExp(`id="tag-toggle-${id}"`));
+  // Untagged by default
+  assert.doesNotMatch(res.body, /class="tag-toggle is-tagged"/);
+});

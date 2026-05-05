@@ -2,7 +2,12 @@
 {% block content %}
   <main class="app recipe-view">
     <p><a href="/">← Back to recipes</a></p>
-    <h1>{{ recipe.title }}</h1>
+    <div class="recipe-header">
+      <h1>{{ recipe.title }}</h1>
+      {% set id = recipe.id %}
+      {% set isTagged = recipe.isTagged %}
+      {% include "partials/tag-toggle.njk" %}
+    </div>
     {% if recipe.description %}<p class="description">{{ recipe.description }}</p>{% endif %}
     {% if recipe.imageUrl %}<img class="hero" src="{{ recipe.imageUrl }}" alt="">{% endif %}
     <p class="meta">
