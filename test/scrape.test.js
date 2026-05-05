@@ -145,3 +145,96 @@ test('flattenInstructions trims whitespace and drops empties', () => {
     ['one', 'two']
   );
 });
+
+const { normalizeRecipe, normalizeImage, normalizeYield } = require('../lib/scrape');
+
+test('normalizeImage handles string', () => {
+  assert.strictEqual(normalizeImage('https://x.com/a.jpg'), 'https://x.com/a.jpg');
+});
+
+test('normalizeImage handles array (takes first)', () => {
+  assert.strictEqual(normalizeImage(['https://x/a.jpg', 'https://x/b.jpg']), 'https://x/a.jpg');
+});
+
+test('normalizeImage handles object with url', () => {
+  assert.strictEqual(normalizeImage({ url: 'https://x/a.jpg' }), 'https://x/a.jpg');
+});
+
+test('normalizeImage handles array of objects', () => {
+  assert.strictEqual(normalizeImage([{ url: 'https://x/a.jpg' }]), 'https://x/a.jpg');
+});
+
+test('normalizeImage returns null for missing/invalid', () => {
+  assert.strictEqual(normalizeImage(undefined), null);
+  assert.strictEqual(normalizeImage(null), null);
+  assert.strictEqual(normalizeImage([]), null);
+  assert.strictEqual(normalizeImage({ noUrl: 'x' }), null);
+});
+
+test('normalizeYield coerces number to string', () => {
+  assert.strictEqual(normalizeYield(4), '4');
+});
+
+test('normalizeYield trims string', () => {
+  assert.strictEqual(normalizeYield('  4 servings  '), '4 servings');
+});
+
+test('normalizeYield takes first of array', () => {
+  assert.strictEqual(normalizeYield(['4 servings', '500g']), '4 servings');
+});
+
+test('normalizeYield returns null for empty/missing', () => {
+  assert.strictEqual(normalizeYield(undefined), null);
+  assert.strictEqual(normalizeYield(''), null);
+  assert.strictEqual(normalizeYield([]), null);
+});
+
+test('normalizeRecipe builds the full shape from a JSON-LD node', () => {
+  const node = {
+    '@type': 'Recipe',
+    name: 'Pasta',
+    description: 'Tasty.',
+    image: 'https://x/a.jpg',
+    recipeYield: '4 servings',
+    prepTime: 'PT15M',
+    cookTime: 'PT30M',
+    recipeIngredient: ['  2 cups flour  ', '1 egg', ''],
+    recipeInstructions: [
+      { '@type': 'HowToStep', text: 'Mix' },
+      { '@type': 'HowToStep', text: 'Cook' }
+    ]
+  };
+  const r = normalizeRecipe(node, 'https://example.com/pasta');
+  assert.strictEqual(r.title, 'Pasta');
+  assert.strictEqual(r.description, 'Tasty.');
+  assert.strictEqual(r.imageUrl, 'https://x/a.jpg');
+  assert.strictEqual(r.servings, '4 servings');
+  assert.strictEqual(r.totalMinutes, 45); // prep+cook fallback
+  assert.deepStrictEqual(r.ingredients, ['2 cups flour', '1 egg']);
+  assert.deepStrictEqual(r.instructions, ['Mix', 'Cook']);
+  assert.strictEqual(r.sourceUrl, 'https://example.com/pasta');
+});
+
+test('normalizeRecipe prefers totalTime over prep+cook', () => {
+  const node = {
+    '@type': 'Recipe',
+    name: 'X',
+    totalTime: 'PT1H',
+    prepTime: 'PT15M',
+    cookTime: 'PT30M'
+  };
+  const r = normalizeRecipe(node, 'https://x/');
+  assert.strictEqual(r.totalMinutes, 60);
+});
+
+test('normalizeRecipe defaults missing fields cleanly', () => {
+  const node = { '@type': 'Recipe', name: 'Bare' };
+  const r = normalizeRecipe(node, 'https://x/');
+  assert.strictEqual(r.title, 'Bare');
+  assert.strictEqual(r.description, '');
+  assert.strictEqual(r.imageUrl, null);
+  assert.strictEqual(r.servings, null);
+  assert.strictEqual(r.totalMinutes, null);
+  assert.deepStrictEqual(r.ingredients, []);
+  assert.deepStrictEqual(r.instructions, []);
+});
