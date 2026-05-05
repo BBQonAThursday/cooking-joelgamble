@@ -1,0 +1,154 @@
+:root {
+  --bg: #fafaf7;
+  --fg: #1a1a1a;
+  --muted: #5a5a5a;
+  --accent: #c45a3a;
+  --border: #e5e2da;
+  --card-bg: #ffffff;
+  --error: #b54632;
+  --radius: 8px;
+  --gap: 16px;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+  line-height: 1.5;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.app {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+.app-header h1 { margin: 0 0 16px; font-size: 28px; }
+
+.paste-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.paste-form input[type="url"] {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 16px;
+  background: var(--card-bg);
+}
+.paste-form button {
+  padding: 10px 18px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius);
+  font-size: 16px;
+  cursor: pointer;
+}
+.paste-form button:hover { filter: brightness(1.05); }
+
+.recipes-panel { }
+.recipe-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--gap);
+}
+.recipe-card {
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.recipe-card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.recipe-card-link:hover { text-decoration: none; }
+.recipe-card-img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  display: block;
+  background: #efeae0;
+}
+.recipe-card-img-empty {
+  display: block;
+}
+.recipe-card-body { padding: 12px 14px; }
+.recipe-card-title { font-weight: 600; margin-bottom: 4px; }
+.recipe-card-meta { font-size: 13px; color: var(--muted); }
+
+.delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px; height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  color: white;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.delete-btn:hover { background: var(--error); }
+
+.empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 32px 0;
+}
+
+.recipe-view h1 { margin: 8px 0 4px; }
+.recipe-view .description { color: var(--muted); margin-top: 0; }
+.recipe-view .hero {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  margin: 12px 0;
+}
+.recipe-view .meta {
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.recipe-view ul, .recipe-view ol {
+  padding-left: 22px;
+}
+.recipe-view li { margin-bottom: 6px; }
+
+.status-toast {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a1a;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+  z-index: 100;
+}
+.status-toast.visible { opacity: 1; }
+.status-toast.error { background: var(--error); }
+
+@media (max-width: 640px) {
+  .recipe-list { grid-template-columns: 1fr; }
+  .paste-form { flex-direction: column; }
+  .paste-form button { width: 100%; }
+}
