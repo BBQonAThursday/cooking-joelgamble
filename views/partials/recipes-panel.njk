@@ -1,0 +1,13 @@
+<section id="recipes-panel">
+  {% if hasRecipes %}
+    <ul class="recipe-list">
+      {% for r in recipes %}
+        <li class="recipe-card" data-id="{{ r.id }}">
+          <a href="/recipes/{{ r.id }}">{{ r.title }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty">No recipes yet. Paste a URL above to get started.</p>
+  {% endif %}
+</section>

@@ -1,0 +1,11 @@
+{% extends "layout.njk" %}
+{% block content %}
+  <main class="app">
+    <h1>Recipe Box</h1>
+    <form id="paste-form" hx-post="/recipes" hx-swap="none" hx-on:htmx:after-request="if(event.detail.successful) this.reset()">
+      <input type="url" name="url" placeholder="Paste a recipe URL" required>
+      <button type="submit">Save</button>
+    </form>
+    {% include "partials/recipes-panel.njk" %}
+  </main>
+{% endblock %}

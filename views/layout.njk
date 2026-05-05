@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recipe Box</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/vendor/htmx.min.js" defer></script>
+</head>
+<body>
+  {% block content %}{% endblock %}
+  <div class="status-toast" id="status-toast"></div>
+  <script>
+    (function () {
+      let timer = null;
+      function showStatus(msg, isError) {
+        const el = document.getElementById('status-toast');
+        el.textContent = msg || 'Saved';
+        el.classList.toggle('error', !!isError);
+        el.classList.add('visible');
+        clearTimeout(timer);
+        timer = setTimeout(() => el.classList.remove('visible'), isError ? 3500 : 1200);
+      }
+      document.body.addEventListener('htmx:afterRequest', (e) => {
+        if (e.detail.requestConfig && e.detail.requestConfig.verb === 'get') return;
+        if (e.detail.successful) {
+          const hx = e.detail.xhr.getResponseHeader('X-Status-Toast');
+          showStatus(hx || 'Saved');
+        } else {
+          showStatus('Error', true);
+        }
+      });
+      document.body.addEventListener('htmx:sendError', () => showStatus('Connection error', true));
+    })();
+  </script>
+</body>
+</html>

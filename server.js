@@ -19,7 +19,13 @@ function createApp() {
 
   app.get('/healthz', (req, res) => res.type('text').send('ok'));
 
-  // Routes registered in later tasks.
+  app.use('/', require('./routes/recipes'));
+
+  const storage = require('./lib/storage');
+  const { buildView } = require('./lib/calc');
+  app.get('/', (req, res) => {
+    res.render('index.njk', buildView(storage.get()));
+  });
 
   app.use((err, req, res, next) => {
     console.error(err);
