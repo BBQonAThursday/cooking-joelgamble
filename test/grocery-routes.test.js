@@ -63,3 +63,17 @@ test('POST /grocery/:id/check 404s for unknown id', async () => {
   const res = await helpers.request(ctx.port, { method: 'POST', path: '/grocery/g_nope/check' });
   assert.strictEqual(res.status, 404);
 });
+
+test('DELETE /grocery/:id removes the item and OOB-swaps the list', async () => {
+  const id = await addItem(ctx.port, 'eggs');
+  const res = await helpers.request(ctx.port, { method: 'DELETE', path: `/grocery/${id}` });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /id="grocery-list"/);
+  assert.match(res.body, /Grocery list is empty/);
+  assert.match(res.headers['x-status-toast'] || '', /Removed/);
+});
+
+test('DELETE /grocery/:id 404s for unknown id', async () => {
+  const res = await helpers.request(ctx.port, { method: 'DELETE', path: '/grocery/g_nope' });
+  assert.strictEqual(res.status, 404);
+});

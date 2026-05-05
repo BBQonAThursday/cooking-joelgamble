@@ -1,7 +1,7 @@
 const express = require('express');
 const storage = require('../lib/storage');
 const { buildGroceryView } = require('../lib/calc');
-const { addItem, toggleChecked } = require('../lib/grocery');
+const { addItem, toggleChecked, removeItem } = require('../lib/grocery');
 const { respondWithUpdates } = require('../lib/render');
 
 const router = express.Router();
@@ -38,6 +38,19 @@ router.post('/grocery/:id/check', (req, res) => {
   respondWithUpdates(req, res, {
     panels: ['partials/grocery-item.njk'],
     extra: { item: result.item }
+  });
+});
+
+router.delete('/grocery/:id', (req, res) => {
+  const state = storage.get();
+  const result = removeItem(state, req.params.id);
+  if (!result.ok) return res.status(404).type('text').send('Not found');
+  storage.save();
+  setToast(res, 'Removed');
+  const view = buildGroceryView(state);
+  respondWithUpdates(req, res, {
+    panels: ['partials/grocery-list.njk'],
+    extra: view
   });
 });
 
