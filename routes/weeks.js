@@ -35,9 +35,11 @@ router.post('/this-week/recipes/:id', (req, res) => {
   };
   // Two OOB fragments: re-rendered card AND re-rendered standalone toggle.
   // HTMX matches by id; whichever isn't in the current DOM is ignored.
+  const currentUrl = req.headers['hx-current-url'] || '';
+  const context = currentUrl.includes('/this-week') ? 'this-week' : 'recipes';
   respondWithUpdates(req, res, {
     panels: ['partials/recipe-card.njk', 'partials/tag-toggle.njk'],
-    extra: { r: decoratedRecipe, id: decoratedRecipe.id, isTagged: result.isTagged }
+    extra: { r: decoratedRecipe, id: decoratedRecipe.id, isTagged: result.isTagged, context }
   });
 });
 

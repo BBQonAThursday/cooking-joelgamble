@@ -103,3 +103,26 @@ test('POST /this-week/unconfirm clears confirmation without touching grocery', a
   assert.match(res.headers['x-status-toast'] || '', /Confirmation cleared/);
   assert.doesNotMatch(res.body, /Confirmed ✓/);
 });
+
+test('POST /this-week/recipes/:id omits the delete button when HX-Current-URL is /this-week', async () => {
+  const id = await saveRecipe(ctx.port, 'https://example.com/wk-ctx-1');
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: `/this-week/recipes/${id}`,
+    headers: { 'hx-current-url': 'http://127.0.0.1:3003/this-week' }
+  });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, new RegExp(`id="recipe-card-${id}"`));
+  assert.doesNotMatch(res.body, /class="delete-btn"/);
+});
+
+test('POST /this-week/recipes/:id includes the delete button when HX-Current-URL is /', async () => {
+  const id = await saveRecipe(ctx.port, 'https://example.com/wk-ctx-2');
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: `/this-week/recipes/${id}`,
+    headers: { 'hx-current-url': 'http://127.0.0.1:3003/' }
+  });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /class="delete-btn"/);
+});
