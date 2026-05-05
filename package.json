@@ -1,0 +1,20 @@
+{
+  "name": "recipe-box",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal recipe box. Paste a URL — the app scrapes the JSON-LD recipe and saves it.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "dev:lan": "set HOST=0.0.0.0&& node --watch server.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "keywords": ["recipe", "scraper", "json-ld"],
+  "author": "Joel",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^4.21.1",
+    "nunjucks": "^3.2.4"
+  }
+}
