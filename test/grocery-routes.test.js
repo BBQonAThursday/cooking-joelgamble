@@ -50,14 +50,20 @@ test('POST /grocery rejects empty text with 400', async () => {
   assert.strictEqual(res.status, 400);
 });
 
-test('POST /grocery/:id/check toggles checked state', async () => {
+test('POST /grocery/:id/check moves the item to the Got it closed list', async () => {
   const id = await addItem(ctx.port, 'eggs');
   assert.ok(id);
   const res = await helpers.request(ctx.port, { method: 'POST', path: `/grocery/${id}/check` });
   assert.strictEqual(res.status, 200);
+  // OOB-swap of the full list now (not just a single row)
+  assert.match(res.body, /id="grocery-list"[^>]*hx-swap-oob="true"/);
+  // The item is rendered as checked
   assert.match(res.body, new RegExp(`id="grocery-item-${id}"`));
   assert.match(res.body, /class="grocery-item is-checked"/);
-  assert.match(res.body, /hx-swap-oob="true"/);
+  // It appears under the "Got it" header
+  assert.match(res.body, /<h3>Got it<\/h3>/);
+  // The Dairy category section that would normally hold it is absent (only one item, now checked)
+  assert.doesNotMatch(res.body, /<h3 class="grocery-category">Dairy<\/h3>/);
 });
 
 test('POST /grocery/:id/check 404s for unknown id', async () => {

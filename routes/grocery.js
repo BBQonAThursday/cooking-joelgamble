@@ -34,10 +34,12 @@ router.post('/grocery/:id/check', (req, res) => {
   const result = toggleChecked(state, req.params.id);
   if (!result.ok) return res.status(404).type('text').send('Not found');
   storage.save();
-  // OOB-swap the single row
+  // OOB-swap the full list — required because checking moves the item
+  // from its category section to the closed list at the bottom.
+  const view = buildGroceryView(state);
   respondWithUpdates(req, res, {
-    panels: ['partials/grocery-item.njk'],
-    extra: { item: result.item }
+    panels: ['partials/grocery-list.njk'],
+    extra: view
   });
 });
 
