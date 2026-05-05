@@ -87,3 +87,20 @@ test('POST /recipes with missing url returns 400', async () => {
   });
   assert.strictEqual(res.status, 400);
 });
+
+test('GET /recipes/:id returns the recipe page', async () => {
+  await helpers.request(ctx.port, { method: 'POST', path: '/recipes', body: { url: 'https://example.com/get-test' }});
+  const { idForUrl } = require('../lib/id');
+  const id = idForUrl('https://example.com/get-test');
+
+  const res = await helpers.request(ctx.port, { path: `/recipes/${id}` });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /Stub Recipe get-test/);
+  assert.match(res.body, /Ingredients/);
+  assert.match(res.body, /Instructions/);
+});
+
+test('GET /recipes/:id returns 404 for unknown id', async () => {
+  const res = await helpers.request(ctx.port, { path: '/recipes/zzzzzzzzzz' });
+  assert.strictEqual(res.status, 404);
+});

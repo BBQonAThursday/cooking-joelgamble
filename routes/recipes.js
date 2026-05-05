@@ -3,6 +3,7 @@ const storage = require('../lib/storage');
 const scrapeMod = require('../lib/scrape');
 const { idForUrl } = require('../lib/id');
 const { respondWithUpdates } = require('../lib/render');
+const { sourceDomain, formatTotalTime } = require('../lib/calc');
 
 const router = express.Router();
 
@@ -45,6 +46,18 @@ router.post('/recipes', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+router.get('/recipes/:id', (req, res) => {
+  const state = storage.get();
+  const recipe = state.recipes.find(r => r.id === req.params.id);
+  if (!recipe) return res.status(404).type('text').send('Not found');
+  const decorated = {
+    ...recipe,
+    sourceDomain: sourceDomain(recipe.sourceUrl),
+    totalTimeLabel: formatTotalTime(recipe.totalMinutes)
+  };
+  res.render('recipe.njk', { recipe: decorated });
 });
 
 module.exports = router;
