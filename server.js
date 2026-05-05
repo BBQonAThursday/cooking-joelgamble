@@ -24,7 +24,7 @@ function createApp() {
   const storage = require('./lib/storage');
   const { buildView } = require('./lib/calc');
   app.get('/', (req, res) => {
-    res.render('index.njk', buildView(storage.get()));
+    res.render('index.njk', buildView(storage.get(), new Date()));
   });
 
   app.use((err, req, res, next) => {
