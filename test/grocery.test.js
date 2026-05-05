@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { newGroceryId, addItem, toggleChecked } = require('../lib/grocery');
+const { newGroceryId, addItem, toggleChecked, removeItem, clearChecked } = require('../lib/grocery');
 
 test('newGroceryId returns a g_-prefixed string', () => {
   const id = newGroceryId();
@@ -66,4 +66,48 @@ test('toggleChecked rejects an unknown id', () => {
   const state = { grocery: [{ id: 'g_a', text: 'eggs', checked: false }] };
   const result = toggleChecked(state, 'g_zzz');
   assert.deepStrictEqual(result, { ok: false, reason: 'unknown item' });
+});
+
+test('removeItem removes the item by id', () => {
+  const state = { grocery: [
+    { id: 'g_a', text: 'a', checked: false },
+    { id: 'g_b', text: 'b', checked: false }
+  ]};
+  const result = removeItem(state, 'g_a');
+  assert.strictEqual(result.ok, true);
+  assert.strictEqual(result.item.text, 'a');
+  assert.strictEqual(state.grocery.length, 1);
+  assert.strictEqual(state.grocery[0].id, 'g_b');
+});
+
+test('removeItem rejects an unknown id', () => {
+  const state = { grocery: [{ id: 'g_a', text: 'a', checked: false }] };
+  const result = removeItem(state, 'g_zzz');
+  assert.deepStrictEqual(result, { ok: false, reason: 'unknown item' });
+  assert.strictEqual(state.grocery.length, 1);
+});
+
+test('clearChecked removes only checked items', () => {
+  const state = { grocery: [
+    { id: 'g_a', text: 'a', checked: true },
+    { id: 'g_b', text: 'b', checked: false },
+    { id: 'g_c', text: 'c', checked: true }
+  ]};
+  const result = clearChecked(state);
+  assert.strictEqual(result.clearedCount, 2);
+  assert.strictEqual(state.grocery.length, 1);
+  assert.strictEqual(state.grocery[0].id, 'g_b');
+});
+
+test('clearChecked is a no-op when none are checked', () => {
+  const state = { grocery: [{ id: 'g_a', text: 'a', checked: false }] };
+  const result = clearChecked(state);
+  assert.strictEqual(result.clearedCount, 0);
+  assert.strictEqual(state.grocery.length, 1);
+});
+
+test('clearChecked tolerates missing grocery array', () => {
+  const state = {};
+  const result = clearChecked(state);
+  assert.strictEqual(result.clearedCount, 0);
 });
