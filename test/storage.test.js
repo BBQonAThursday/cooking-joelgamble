@@ -65,7 +65,7 @@ test('migrate fills missing weeks onto an existing state', () => {
 });
 
 test('migrate fills missing grocery onto an existing state', () => {
-  const m = storage.migrateForTest({ recipes: [] });
+  const m = storage.migrateForTest({ recipes: [], weeks: [] });
   assert.deepStrictEqual(m.grocery, []);
 });
 
