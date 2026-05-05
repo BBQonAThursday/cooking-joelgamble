@@ -14,6 +14,13 @@ afterEach(async () => {
   helpers.teardownDataDir();
 });
 
+async function addItem(port, text) {
+  const res = await helpers.request(port, { method: 'POST', path: '/grocery', body: { text } });
+  // Extract id from rendered body
+  const m = res.body.match(/id="grocery-item-(g_[a-z0-9]+)"/);
+  return m ? m[1] : null;
+}
+
 test('GET /grocery renders the page with empty state', async () => {
   const res = await helpers.request(ctx.port, { path: '/grocery' });
   assert.strictEqual(res.status, 200);
@@ -40,4 +47,19 @@ test('POST /grocery rejects empty text with 400', async () => {
     body: { text: '   ' }
   });
   assert.strictEqual(res.status, 400);
+});
+
+test('POST /grocery/:id/check toggles checked state', async () => {
+  const id = await addItem(ctx.port, 'eggs');
+  assert.ok(id);
+  const res = await helpers.request(ctx.port, { method: 'POST', path: `/grocery/${id}/check` });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, new RegExp(`id="grocery-item-${id}"`));
+  assert.match(res.body, /class="grocery-item is-checked"/);
+  assert.match(res.body, /hx-swap-oob="true"/);
+});
+
+test('POST /grocery/:id/check 404s for unknown id', async () => {
+  const res = await helpers.request(ctx.port, { method: 'POST', path: '/grocery/g_nope/check' });
+  assert.strictEqual(res.status, 404);
 });

@@ -1,7 +1,7 @@
 const express = require('express');
 const storage = require('../lib/storage');
 const { buildGroceryView } = require('../lib/calc');
-const { addItem } = require('../lib/grocery');
+const { addItem, toggleChecked } = require('../lib/grocery');
 const { respondWithUpdates } = require('../lib/render');
 
 const router = express.Router();
@@ -26,6 +26,18 @@ router.post('/grocery', (req, res) => {
   respondWithUpdates(req, res, {
     panels: ['partials/grocery-list.njk'],
     extra: view
+  });
+});
+
+router.post('/grocery/:id/check', (req, res) => {
+  const state = storage.get();
+  const result = toggleChecked(state, req.params.id);
+  if (!result.ok) return res.status(404).type('text').send('Not found');
+  storage.save();
+  // OOB-swap the single row
+  respondWithUpdates(req, res, {
+    panels: ['partials/grocery-item.njk'],
+    extra: { item: result.item }
   });
 });
 
