@@ -63,3 +63,53 @@ test('recipeCategoryOf does not match on non-word-boundary substrings', () => {
   // "atomato" should not match "tomato"
   assert.strictEqual(recipeCategoryOf('atomato'), 'Other');
 });
+
+const { groceryCategoryOf, GROCERY_CATEGORIES } = require('../lib/categorize');
+
+test('GROCERY_CATEGORIES is the canonical ordered list', () => {
+  assert.deepStrictEqual(GROCERY_CATEGORIES, ['Produce', 'Meat', 'Dairy', 'Aisle', 'Frozen', 'Other']);
+});
+
+test('groceryCategoryOf maps fresh produce to Produce', () => {
+  assert.strictEqual(groceryCategoryOf('1 medium onion, diced'), 'Produce');
+  assert.strictEqual(groceryCategoryOf('2 large tomatoes'), 'Produce');
+  assert.strictEqual(groceryCategoryOf('1 lemon'), 'Produce');
+});
+
+test('groceryCategoryOf maps animal proteins to Meat', () => {
+  assert.strictEqual(groceryCategoryOf('500g boneless chicken thighs'), 'Meat');
+  assert.strictEqual(groceryCategoryOf('1 lb ground beef'), 'Meat');
+  assert.strictEqual(groceryCategoryOf('2 salmon fillets'), 'Meat');
+});
+
+test('groceryCategoryOf maps dairy items to Dairy', () => {
+  assert.strictEqual(groceryCategoryOf('1 cup milk'), 'Dairy');
+  assert.strictEqual(groceryCategoryOf('2 tbsp butter'), 'Dairy');
+  assert.strictEqual(groceryCategoryOf('1 cup shredded cheddar cheese'), 'Dairy');
+  assert.strictEqual(groceryCategoryOf('3 eggs'), 'Dairy');
+});
+
+test('groceryCategoryOf maps shelf-stable to Aisle', () => {
+  assert.strictEqual(groceryCategoryOf('1 cup rice'), 'Aisle');
+  assert.strictEqual(groceryCategoryOf('1 lb pasta'), 'Aisle');
+  assert.strictEqual(groceryCategoryOf('1 tsp salt'), 'Aisle');
+  assert.strictEqual(groceryCategoryOf('2 tbsp olive oil'), 'Aisle');
+  assert.strictEqual(groceryCategoryOf('1/4 cup soy sauce'), 'Aisle');
+  assert.strictEqual(groceryCategoryOf('1 can chickpeas'), 'Aisle');
+});
+
+test('groceryCategoryOf maps frozen to Frozen', () => {
+  assert.strictEqual(groceryCategoryOf('1 bag frozen peas'), 'Frozen');
+  assert.strictEqual(groceryCategoryOf('1 pint ice cream'), 'Frozen');
+});
+
+test('groceryCategoryOf returns Other for unknown input', () => {
+  assert.strictEqual(groceryCategoryOf('xyzzy unknown'), 'Other');
+  assert.strictEqual(groceryCategoryOf(''), 'Other');
+  assert.strictEqual(groceryCategoryOf(null), 'Other');
+});
+
+test('groceryCategoryOf prefers Aisle over Produce for canned/processed', () => {
+  // tomato sauce should be Aisle (canned/jarred), not Produce
+  assert.strictEqual(groceryCategoryOf('1 cup tomato sauce'), 'Aisle');
+});
