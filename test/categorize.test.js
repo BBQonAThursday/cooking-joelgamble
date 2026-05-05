@@ -113,3 +113,17 @@ test('groceryCategoryOf prefers Aisle over Produce for canned/processed', () => 
   // tomato sauce should be Aisle (canned/jarred), not Produce
   assert.strictEqual(groceryCategoryOf('1 cup tomato sauce'), 'Aisle');
 });
+
+test('recipeCategoryOf maps chicken stock to Flavor (longest keyword wins over chicken)', () => {
+  assert.strictEqual(recipeCategoryOf('1 cup chicken stock'), 'Flavor');
+  assert.strictEqual(recipeCategoryOf('2 cups beef stock'), 'Flavor');
+  assert.strictEqual(recipeCategoryOf('3 cups vegetable stock'), 'Flavor');
+});
+
+test('groceryCategoryOf routes thyme to Produce (no Aisle dead-code conflict)', () => {
+  // thyme should map cleanly to Produce; the duplicate Aisle entry was removed
+  // to eliminate dead code. Same for basil and rosemary.
+  assert.strictEqual(groceryCategoryOf('1 sprig fresh thyme'), 'Produce');
+  assert.strictEqual(groceryCategoryOf('1 sprig fresh basil'), 'Produce');
+  assert.strictEqual(groceryCategoryOf('1 sprig fresh rosemary'), 'Produce');
+});
