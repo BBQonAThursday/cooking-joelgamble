@@ -1,0 +1,6 @@
+<button class="tag-toggle{% if isTagged %} is-tagged{% endif %}"
+        id="tag-toggle-{{ id }}"
+        hx-post="/this-week/recipes/{{ id }}"
+        hx-swap="none"
+        aria-label="{% if isTagged %}Remove from this week{% else %}Add to this week{% endif %}"
+        title="{% if isTagged %}Remove from this week{% else %}Add to this week{% endif %}">★</button>

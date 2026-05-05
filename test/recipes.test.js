@@ -131,3 +131,10 @@ test('GET / renders the top tabs with Recipes active', async () => {
   assert.match(res.body, /href="\/grocery"/);
   assert.match(res.body, /href="\/history"/);
 });
+
+test('GET / shows an untagged tag-toggle on each recipe card', async () => {
+  await helpers.request(ctx.port, { method: 'POST', path: '/recipes', body: { url: 'https://example.com/tag-test' } });
+  const res = await helpers.request(ctx.port, { path: '/' });
+  assert.match(res.body, /<button[^>]*class="tag-toggle"[^>]*hx-post="\/this-week\/recipes\/[a-z0-9]+"/);
+  assert.doesNotMatch(res.body, /class="tag-toggle is-tagged"/);
+});

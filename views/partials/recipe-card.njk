@@ -1,4 +1,4 @@
-<li class="recipe-card{% if r.isTagged %} is-tagged{% endif %}" data-id="{{ r.id }}">
+<li class="recipe-card{% if r.isTagged %} is-tagged{% endif %}" id="recipe-card-{{ r.id }}" data-id="{{ r.id }}">
   <a class="recipe-card-link" href="/recipes/{{ r.id }}">
     {% if r.imageUrl %}
       <img class="recipe-card-img" src="{{ r.imageUrl }}" alt="" loading="lazy">
@@ -14,6 +14,9 @@
       </div>
     </div>
   </a>
+  {% set id = r.id %}
+  {% set isTagged = r.isTagged %}
+  {% include "partials/tag-toggle.njk" %}
   {% if context != 'this-week' %}
   <button class="delete-btn"
           hx-delete="/recipes/{{ r.id }}"
