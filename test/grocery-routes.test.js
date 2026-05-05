@@ -77,3 +77,21 @@ test('DELETE /grocery/:id 404s for unknown id', async () => {
   const res = await helpers.request(ctx.port, { method: 'DELETE', path: '/grocery/g_nope' });
   assert.strictEqual(res.status, 404);
 });
+
+test('POST /grocery/clear-checked removes only checked items', async () => {
+  const idA = await addItem(ctx.port, 'eggs');
+  const idB = await addItem(ctx.port, 'milk');
+  await helpers.request(ctx.port, { method: 'POST', path: `/grocery/${idA}/check` });
+  const res = await helpers.request(ctx.port, { method: 'POST', path: '/grocery/clear-checked' });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /id="grocery-list"/);
+  assert.match(res.body, />milk</);
+  assert.doesNotMatch(res.body, />eggs</);
+  assert.match(res.headers['x-status-toast'] || '', /Cleared 1 item/);
+});
+
+test('POST /grocery/clear-checked with nothing checked says so', async () => {
+  await addItem(ctx.port, 'eggs');
+  const res = await helpers.request(ctx.port, { method: 'POST', path: '/grocery/clear-checked' });
+  assert.match(res.headers['x-status-toast'] || '', /Nothing to clear/);
+});
