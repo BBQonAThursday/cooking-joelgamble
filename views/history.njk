@@ -1,0 +1,28 @@
+{% extends "layout.njk" %}
+{% block content %}
+  <main class="app">
+    <header class="app-header">
+      <h1>History</h1>
+    </header>
+    {% if hasHistory %}
+      <ul class="history-list">
+        {% for w in pastWeeks %}
+          <li class="history-week">
+            <h3 class="history-weekstart">Week of {{ w.weekStart }}{% if w.confirmed %} <span class="confirmed-pill">✓</span>{% endif %}</h3>
+            {% if w.recipes.length > 0 %}
+              <ul class="history-recipes">
+                {% for r in w.recipes %}
+                  <li><a href="/recipes/{{ r.id }}">{{ r.title }}</a></li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="empty">No recipes tagged.</p>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty">No past weeks yet.</p>
+    {% endif %}
+  </main>
+{% endblock %}
