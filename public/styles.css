@@ -147,6 +147,202 @@ a:hover { text-decoration: underline; }
 .status-toast.visible { opacity: 1; }
 .status-toast.error { background: var(--error); }
 
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  padding: 8px 14px;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-size: 14px;
+}
+.tab:hover { color: var(--fg); text-decoration: none; }
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Tag toggle */
+.tag-toggle {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 32px; height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  color: rgba(255,255,255,0.55);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 1;
+}
+.tag-toggle:hover { background: rgba(0,0,0,0.75); color: white; }
+.tag-toggle.is-tagged {
+  background: var(--accent);
+  color: white;
+}
+.recipe-card.is-tagged {
+  border-left: 3px solid var(--accent);
+}
+
+/* Recipe-detail tag-toggle (no absolute positioning — sits inline with title) */
+.recipe-view .recipe-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.recipe-view .recipe-header .tag-toggle {
+  position: static;
+  width: 36px; height: 36px;
+  font-size: 20px;
+}
+.recipe-view .recipe-header h1 { margin: 0; flex: 1; }
+
+/* Week banner */
+.week-banner {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.week-banner.warning {
+  border-left: 3px solid var(--accent);
+  background: #fff8f4;
+}
+.banner-btn {
+  padding: 10px 14px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius);
+  font-size: 15px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.banner-btn:hover { filter: brightness(1.05); }
+.banner-btn-secondary {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.banner-sub { margin: 0; color: var(--muted); font-size: 14px; }
+.confirmed-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--accent);
+  color: white;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* Grocery */
+.grocery-add {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.grocery-add input[type="text"] {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 16px;
+  background: var(--card-bg);
+}
+.grocery-add button {
+  padding: 10px 18px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius);
+  font-size: 16px;
+  cursor: pointer;
+}
+.grocery-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  overflow: hidden;
+}
+.grocery-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.grocery-item:last-child { border-bottom: none; }
+.grocery-item.is-checked .grocery-text {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.grocery-check {
+  width: 24px; height: 24px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.grocery-item.is-checked .grocery-check {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.grocery-text { flex: 1; }
+.grocery-delete {
+  width: 24px; height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.grocery-delete:hover { color: var(--error); }
+.grocery-empty { padding: 20px; text-align: center; }
+.grocery-clear-checked {
+  margin-top: 12px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.grocery-clear-checked:hover { color: var(--fg); border-color: var(--fg); }
+
+/* History */
+.history-list { list-style: none; padding: 0; margin: 0; }
+.history-week {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+.history-weekstart { margin: 0 0 8px; font-size: 16px; }
+.history-recipes { margin: 0; padding-left: 20px; }
+
 @media (max-width: 640px) {
   .recipe-list { grid-template-columns: 1fr; }
   .paste-form { flex-direction: column; }
