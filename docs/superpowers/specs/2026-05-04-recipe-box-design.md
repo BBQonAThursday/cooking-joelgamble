@@ -101,7 +101,7 @@ Tests inject `ctx.fetch` so they never hit the network. `ctx.now` provides the t
 - Surface fetch failures as `reason: "Couldn't reach <hostname>"`.
 
 ### JSON-LD extraction
-- Regex-find every `<script type="application/ld+json">...</script>` block. (Per the JSON spec, ld+json blocks cannot contain raw `</script>`, so a non-greedy regex is safe.)
+- Find every `<script ... type="application/ld+json" ...>...</script>` block. Matcher must be tolerant of additional attributes (e.g. `id`) and any attribute order; the only requirement is the `type="application/ld+json"` attribute is present on a `<script>` tag. Per the JSON spec, ld+json blocks cannot contain raw `</script>`, so a non-greedy match is safe.
 - `JSON.parse` each block; ignore parse failures and continue to the next block.
 - Walk each parsed value: if it's an array, walk each element; if it has `@graph`, walk each element of that; otherwise check the value itself.
 - A node is a recipe if `@type === "Recipe"` OR `@type` is an array containing `"Recipe"`.
@@ -137,9 +137,11 @@ Tests inject `ctx.fetch` so they never hit the network. `ctx.now` provides the t
 | `GET` | `/recipes/:id` | Full-page recipe view. Returns `recipe.njk`. 404 if missing. |
 | `DELETE` | `/recipes/:id` | Remove from state, save. OOB-swap `#recipes-panel` + status toast. |
 
-**POST behavior on duplicate URL:** if `id` already exists in state, replace the existing entry with the freshly-scraped one (overwriting `addedAt` too — re-saving is a meaningful action and bumping `addedAt` re-promotes the recipe to the top of the list). Toast says "Updated: <title>".
+**POST behavior on success (new URL):** prepend the new entry to `state.recipes`. Toast says `Saved: <title>`.
 
-**POST behavior on scraper failure:** state unchanged, toast says reason ("No recipe data found on this page", "Couldn't reach <hostname>", etc.).
+**POST behavior on duplicate URL:** if `id` already exists in state, replace the existing entry with the freshly-scraped one (overwriting `addedAt` too — re-saving is a meaningful action and bumping `addedAt` re-promotes the recipe to the top of the list). Toast says `Updated: <title>`.
+
+**POST behavior on scraper failure:** state unchanged, toast says the failure reason ("No recipe data found on this page", "Couldn't reach <hostname>", etc.).
 
 ## UI
 
