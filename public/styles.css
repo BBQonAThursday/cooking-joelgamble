@@ -322,16 +322,6 @@ a:hover { text-decoration: underline; }
 }
 .grocery-delete:hover { color: var(--error); }
 .grocery-empty { padding: 20px; text-align: center; }
-.grocery-clear-checked {
-  margin-top: 12px;
-  padding: 8px 14px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--muted);
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-.grocery-clear-checked:hover { color: var(--fg); border-color: var(--fg); }
 
 /* History */
 .history-list { list-style: none; padding: 0; margin: 0; }
@@ -358,6 +348,60 @@ a:hover { text-decoration: underline; }
 .recipe-instructions ol { padding-left: 22px; }
 .recipe-ingredients li,
 .recipe-instructions li { margin-bottom: 6px; }
+
+/* Ingredient categories on recipe detail */
+.ingredient-category {
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 12px 0 4px;
+  letter-spacing: 0.05em;
+}
+.ingredient-category:first-child { margin-top: 0; }
+
+/* Grocery category groups */
+.grocery-group { padding: 8px 0; border-bottom: 1px solid var(--border); }
+.grocery-group:last-of-type { border-bottom: none; }
+.grocery-category {
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
+  padding: 4px 14px;
+  letter-spacing: 0.05em;
+}
+.grocery-items { list-style: none; padding: 0; margin: 0; }
+
+/* Closed (checked) list */
+.grocery-closed {
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 2px solid var(--border);
+  opacity: 0.65;
+}
+.grocery-closed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 14px;
+}
+.grocery-closed-header h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
+  letter-spacing: 0.05em;
+}
+.grocery-clear-closed {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: var(--radius);
+  font-size: 12px;
+  cursor: pointer;
+}
+.grocery-clear-closed:hover { color: var(--fg); border-color: var(--fg); }
 
 @media (max-width: 640px) {
   .recipe-list { grid-template-columns: 1fr; }
