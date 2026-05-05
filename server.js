@@ -20,6 +20,7 @@ function createApp() {
   app.get('/healthz', (req, res) => res.type('text').send('ok'));
 
   app.use('/', require('./routes/recipes'));
+  app.use('/', require('./routes/weeks'));
 
   const storage = require('./lib/storage');
   const { buildView } = require('./lib/calc');

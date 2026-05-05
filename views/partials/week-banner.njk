@@ -1,0 +1,22 @@
+<section id="week-banner" class="week-banner{% if week.confirmed and week.modifiedAfterConfirm %} warning{% endif %}">
+  {% if not week.confirmed %}
+    {% if weekRecipeCount > 0 %}
+      <button class="banner-btn"
+              hx-post="/this-week/confirm"
+              hx-swap="none">Confirm week — adds {{ pendingIngredientCount }} ingredient{{ 's' if pendingIngredientCount != 1 else '' }} to grocery list</button>
+      <p class="banner-sub">{{ weekRecipeCount }} recipe{{ 's' if weekRecipeCount != 1 else '' }} tagged.</p>
+    {% else %}
+      <p class="banner-sub">No recipes tagged yet. Add some from the Recipes tab.</p>
+    {% endif %}
+  {% elif week.modifiedAfterConfirm %}
+    <button class="banner-btn"
+            hx-post="/this-week/confirm"
+            hx-swap="none">Re-confirm to sync grocery list</button>
+    <p class="banner-sub">Week modified after confirm.</p>
+  {% else %}
+    <p class="banner-sub"><span class="confirmed-pill">Confirmed ✓</span></p>
+    <button class="banner-btn-secondary"
+            hx-post="/this-week/unconfirm"
+            hx-swap="none">Unconfirm</button>
+  {% endif %}
+</section>

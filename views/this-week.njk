@@ -1,0 +1,10 @@
+{% extends "layout.njk" %}
+{% block content %}
+  <main class="app">
+    <header class="app-header">
+      <h1>This Week</h1>
+    </header>
+    {% include "partials/week-banner.njk" %}
+    {% include "partials/this-week-panel.njk" %}
+  </main>
+{% endblock %}

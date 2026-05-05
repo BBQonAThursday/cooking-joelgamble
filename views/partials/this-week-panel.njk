@@ -1,0 +1,12 @@
+<section id="this-week-panel" class="recipes-panel">
+  {% if hasRecipes %}
+    <ul class="recipe-list">
+      {% for r in weekRecipes %}
+        {% set context = 'this-week' %}
+        {% include "partials/recipe-card.njk" %}
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty">No recipes tagged for this week. Tap a ★ on the Recipes tab to add one.</p>
+  {% endif %}
+</section>
