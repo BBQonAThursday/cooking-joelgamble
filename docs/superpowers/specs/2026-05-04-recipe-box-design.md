@@ -172,44 +172,43 @@ Tests inject `ctx.fetch` so they never hit the network. `ctx.now` provides the t
 
 ### Adapter — `home-hub/lib/adapters/recipe-box.js`
 
+Follows the existing planner adapter pattern: direct function export, sync `fs.readFileSync` with `tile.sourcePath`, lines are `{ label, value }` objects, status `'unknown'` (healthcheck supplies up/down).
+
 ```js
-const path = require('node:path');
+const fs = require('node:fs');
 
-async function read(tile, ctx) {
-  const filePath = path.resolve(__dirname, '..', '..', tile.sourcePath);
-  const raw = await ctx.fs.readFile(filePath, 'utf8');
-  const state = JSON.parse(raw);
-  const recipes = state.recipes || [];
-  const latest = [...recipes].sort((a, b) => b.addedAt.localeCompare(a.addedAt))[0];
-  return {
-    status: 'ok',
-    latencyMs: 0,
-    lines: [
-      `${recipes.length} recipe${recipes.length === 1 ? '' : 's'}`,
-      latest ? `Latest: ${latest.title}` : 'No recipes yet'
-    ]
-  };
-}
-
-module.exports = { read };
+module.exports = async function read(tile, ctx) {
+  let raw;
+  try {
+    raw = JSON.parse(fs.readFileSync(tile.sourcePath, 'utf8'));
+  } catch (err) {
+    return { status: 'unknown', latencyMs: null, lines: [], error: err.message };
+  }
+  const recipes = Array.isArray(raw.recipes) ? raw.recipes : [];
+  const latest = recipes.slice().sort((a, b) => (b.addedAt || '').localeCompare(a.addedAt || ''))[0];
+  const lines = [
+    { label: 'Recipes', value: String(recipes.length) },
+    { label: 'Latest', value: latest ? latest.title : '—' }
+  ];
+  return { status: 'unknown', latencyMs: null, lines, error: null };
+};
 ```
 
-Errors (file missing, parse failure) bubble to `home-hub/lib/tiles.js`, which catches them and renders an error line per the existing convention.
+Errors (file missing, parse failure) are returned as `error` strings per the existing adapter convention; `lib/tiles.js` also wraps the call with timeout + try/catch.
 
-### Tile config — added to `home-hub/data/state.json`
+### Tile config — added to `home-hub/data/state.json` and `defaultState()` in `home-hub/lib/storage.js`
 
 ```js
 {
-  id: "recipes",
-  name: "Recipe Box",
-  kind: "recipe-box",
-  url: "http://127.0.0.1:3003",
-  sourcePath: "../recipe-box/data/state.json",
-  order: <next>
+  id: 'recipes',
+  name: 'Recipe Box',
+  kind: 'recipe-box',
+  url: 'http://127.0.0.1:3003',
+  healthCheck: 'http://127.0.0.1:3003',
+  sourcePath: '../recipe-box/data/state.json',
+  order: 3
 }
 ```
-
-Also seeded in `home-hub/lib/storage.js` `defaultState()` so fresh installs include it.
 
 ## Testing
 
