@@ -15,13 +15,19 @@
       {% if recipe.totalTimeLabel %} · {{ recipe.totalTimeLabel }}{% endif %}
       {% if recipe.sourceDomain %} · <a href="{{ recipe.sourceUrl }}" rel="noopener">{{ recipe.sourceDomain }}</a>{% endif %}
     </p>
-    <h2>Ingredients</h2>
-    <ul>
-      {% for ing in recipe.ingredients %}<li>{{ ing }}</li>{% endfor %}
-    </ul>
-    <h2>Instructions</h2>
-    <ol>
-      {% for step in recipe.instructions %}<li>{{ step }}</li>{% endfor %}
-    </ol>
+    <div class="recipe-body">
+      <section class="recipe-ingredients">
+        <h2>Ingredients</h2>
+        <ul>
+          {% for ing in recipe.ingredients %}<li>{{ ing }}</li>{% endfor %}
+        </ul>
+      </section>
+      <section class="recipe-instructions">
+        <h2>Instructions</h2>
+        <ol>
+          {% for step in recipe.instructions %}<li>{{ step }}</li>{% endfor %}
+        </ol>
+      </section>
+    </div>
   </main>
 {% endblock %}

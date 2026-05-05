@@ -345,8 +345,23 @@ a:hover { text-decoration: underline; }
 .history-weekstart { margin: 0 0 8px; font-size: 16px; }
 .history-recipes { margin: 0; padding-left: 20px; }
 
+/* Recipe body two-column */
+.recipe-body {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: 32px;
+  align-items: start;
+  margin-top: 16px;
+}
+.recipe-body h2 { margin-top: 0; }
+.recipe-ingredients ul,
+.recipe-instructions ol { padding-left: 22px; }
+.recipe-ingredients li,
+.recipe-instructions li { margin-bottom: 6px; }
+
 @media (max-width: 640px) {
   .recipe-list { grid-template-columns: 1fr; }
   .paste-form { flex-direction: column; }
   .paste-form button { width: 100%; }
+  .recipe-body { grid-template-columns: 1fr; gap: 16px; }
 }
