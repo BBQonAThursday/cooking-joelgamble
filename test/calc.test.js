@@ -177,3 +177,45 @@ test('buildHistoryView returns hasHistory=false when no past weeks', () => {
   assert.strictEqual(view.hasHistory, false);
   assert.deepStrictEqual(view.pastWeeks, []);
 });
+
+const { decorateIngredients } = require('../lib/calc');
+
+test('decorateIngredients groups ingredients by recipe category in canonical order', () => {
+  const ingredients = [
+    '500g chicken thighs',
+    '1 medium onion',
+    '1 tsp salt',
+    '2 tbsp olive oil',
+    'something-uncategorized'
+  ];
+  const groups = decorateIngredients(ingredients);
+  assert.deepStrictEqual(groups.map(g => g.category), ['Protein', 'Veg', 'Seasoning', 'Flavor', 'Other']);
+  assert.deepStrictEqual(groups[0].items, ['500g chicken thighs']);
+  assert.deepStrictEqual(groups[1].items, ['1 medium onion']);
+  assert.deepStrictEqual(groups[2].items, ['1 tsp salt']);
+  assert.deepStrictEqual(groups[3].items, ['2 tbsp olive oil']);
+  assert.deepStrictEqual(groups[4].items, ['something-uncategorized']);
+});
+
+test('decorateIngredients omits empty categories', () => {
+  const groups = decorateIngredients(['500g chicken', '1 tsp salt']);
+  assert.strictEqual(groups.length, 2);
+  assert.deepStrictEqual(groups.map(g => g.category), ['Protein', 'Seasoning']);
+});
+
+test('decorateIngredients preserves item order within a group', () => {
+  const groups = decorateIngredients([
+    '1 onion',
+    '1 carrot',
+    '1 tomato'
+  ]);
+  assert.strictEqual(groups.length, 1);
+  assert.deepStrictEqual(groups[0].items, ['1 onion', '1 carrot', '1 tomato']);
+});
+
+test('decorateIngredients tolerates empty/missing input', () => {
+  assert.deepStrictEqual(decorateIngredients(undefined), []);
+  assert.deepStrictEqual(decorateIngredients(null), []);
+  assert.deepStrictEqual(decorateIngredients([]), []);
+  assert.deepStrictEqual(decorateIngredients(['', '   ']), []);
+});
