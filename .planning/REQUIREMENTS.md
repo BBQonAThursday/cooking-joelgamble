@@ -17,8 +17,8 @@
 ### Matching & Categorization (MATCH)
 
 - [x] **MATCH-01**: `recipeCategoryOf` and `groceryCategoryOf` accept an optional `library` parameter. When provided, library aliases are checked first (longest-alias-wins, word-boundary regex, same shape as existing keyword index). On no library hit, fall back to existing keyword tables. On no match anywhere, return `'Other'`. *(Closed by Plan 03-02 — commits 9336d89, 57a30b3, 6a248ac.)*
-- [ ] **MATCH-02**: `decorateIngredients(ingredients, library)` and `buildGroceryView(state)` thread the library through to the matcher. Categorization is computed fresh on every render (no precomputed category storage on grocery items or recipe ingredients).
-- [ ] **MATCH-03**: `lib/library.js#findEntryByText` returns the matched entry id (not just a category) so the inline Fix shortcut knows which entry to open.
+- [x] **MATCH-02**: `decorateIngredients(ingredients, library)` and `buildGroceryView(state)` thread the library through to the matcher. Categorization is computed fresh on every render (no precomputed category storage on grocery items or recipe ingredients). *(Closed by Plan 03-03 — commits 93b6bc8, 820d08a, 8789055, 18d79b4.)*
+- [x] **MATCH-03**: `lib/library.js#findEntryByText` returns the matched entry id (not just a category) so the inline Fix shortcut knows which entry to open. *(Closed by Phase 2 + Plan 03-01 + Plan 03-03 end-to-end exposure on view items.)*
 
 ### Auto-Extract (EXTR)
 
@@ -81,8 +81,8 @@ These are anti-features captured during research and decision-making. Reasoning 
 | FND-03 | Phase 1 + 2 | Skeleton in Phase 1; full helpers in Phase 2 |
 | FND-04 | Phase 1 | Ships in same commit as storage migration |
 | MATCH-01 | Phase 3 | Closed by Plan 03-02 (library-aware categorize signatures + D-35 keyword fixes + D-36 BLOCKER closure) |
-| MATCH-02 | Phase 3 | |
-| MATCH-03 | Phase 3 | `findEntryByText` returns entry id |
+| MATCH-02 | Phase 3 | Closed by Plan 03-03 (lib/calc.js library threading; libraryEntryId on item views; routes/recipes.js + views/recipe.njk wired) |
+| MATCH-03 | Phase 3 | `findEntryByText` returns entry id; end-to-end exposure on grocery + recipe ingredient view items closed by Plan 03-03 |
 | EXTR-01 | Phase 4 | Requires Phase 2 normalization |
 | EXTR-02 | Phase 2 | Must precede EXTR-01 and EXTR-03 |
 | EXTR-03 | Phase 4 | Requires Phase 2 normalization |

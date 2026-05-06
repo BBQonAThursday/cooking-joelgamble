@@ -11,7 +11,7 @@
 
 - [ ] **Phase 1: Foundation** — Atomic state migration: `state.library[]`, `libraryMigratedAt` sentinel, `lib/library.js` skeleton with `aliasConflict` + `newLibraryId`, and heuristic pea-bug patch. Ships as one commit.
 - [ ] **Phase 2: Library Helpers** — Pure normalization and extraction helpers in `lib/library.js`: `normalizeIngredientText`, `findEntryByText`, `extractAndSeed`, `aliasConflict` fully implemented. Fully unit-tested with no HTTP.
-- [ ] **Phase 3: Categorization Layering** — `lib/categorize.js` gains optional `library` param; `lib/calc.js` threads library through `decorateIngredients` and `buildGroceryView`; `findEntryByText` returns matched entry id for Fix shortcut.
+- [x] **Phase 3: Categorization Layering** — `lib/categorize.js` gains optional `library` param; `lib/calc.js` threads library through `decorateIngredients` and `buildGroceryView`; `findEntryByText` returns matched entry id for Fix shortcut.
 - [ ] **Phase 4: Auto-Extract & Backfill** — `POST /recipes` calls `extractAndSeed` after save; server-startup backfill runs once when `libraryMigratedAt` is null; idempotency verified.
 - [ ] **Phase 5: Library Tab** — `GET/POST/PATCH/DELETE /library` routes, `buildLibraryView`, and all Library tab templates: browse, filter, search, inline edit, delete, manual add.
 - [ ] **Phase 6: Inline Fix** — Fix affordance on grocery items and recipe ingredient lines: inline category editor, OOB-swap on save, "Edit full entry" link, original ingredient text always preserved.
@@ -69,11 +69,11 @@ Plans:
 Plans:
 
 **Wave 1**
-- [ ] 03-01-PLAN.md — lib/library.js extensions (buildLibraryIndex, findEntryInIndex per D-29) + D-36 normalize-before-regex; findEntryByText becomes a wrapper. Adds 12 unit tests.
+- [x] 03-01-PLAN.md — lib/library.js extensions (buildLibraryIndex, findEntryInIndex per D-29) + D-36 normalize-before-regex; findEntryByText becomes a wrapper. Adds 12 unit tests.
 - [x] 03-02-PLAN.md — lib/categorize.js library-aware signatures (recipeCategoryOf/groceryCategoryOf accept libraryOrIndex per D-26..D-28) + D-35 keyword fixes (remove bare pepper/peppers from RECIPE Veg; add to GROCERY Produce; remove stale 'pepper' from GROCERY Aisle per 03-REVISION-1 W-2) + D-36 BLOCKER closure (matchRawLibrary uses canonical normalizeIngredientText). Added 15 tests. NO require(./library).
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 03-03-PLAN.md — lib/calc.js library threading (buildGroceryView + decorateIngredients build index once per render, attach libraryEntryId per D-31..D-34); routes/recipes.js call-site update; views/recipe.njk line 24 -> ing.text; test/calc.test.js +11 tests + the 6 USER-AUTHORIZED line edits per SC#5/D-31 resolution.
+- [x] 03-03-PLAN.md — lib/calc.js library threading (buildGroceryView + decorateIngredients build index once per render, attach libraryEntryId per D-31..D-34); routes/recipes.js call-site update; views/recipe.njk line 24 -> ing.text; test/calc.test.js +11 tests + the 6 USER-AUTHORIZED line edits per SC#5/D-31 resolution.
 
 ### Phase 4: Auto-Extract & Backfill
 **Goal**: The library populates itself: new recipe saves automatically seed unmatched ingredients as `curated: false` entries, and all pre-existing recipes are backfilled exactly once on first startup after deploy.
@@ -122,7 +122,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/1 | Planned | - |
 | 2. Library Helpers | 0/3 | Planned | - |
-| 3. Categorization Layering | 2/3 | In progress | - |
+| 3. Categorization Layering | 3/3 | Complete | 2026-05-06 |
 | 4. Auto-Extract & Backfill | 0/? | Not started | - |
 | 5. Library Tab | 0/? | Not started | - |
 | 6. Inline Fix | 0/? | Not started | - |
