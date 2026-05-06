@@ -70,7 +70,7 @@ Plans:
 
 **Wave 1**
 - [ ] 03-01-PLAN.md — lib/library.js extensions (buildLibraryIndex, findEntryInIndex per D-29) + D-36 normalize-before-regex; findEntryByText becomes a wrapper. Adds 12 unit tests.
-- [ ] 03-02-PLAN.md — lib/categorize.js library-aware signatures (recipeCategoryOf/groceryCategoryOf accept libraryOrIndex per D-26..D-28) + D-35 keyword fixes (remove bare pepper/peppers from RECIPE Veg; add to GROCERY Produce). Adds 14 tests. NO require(./library).
+- [x] 03-02-PLAN.md — lib/categorize.js library-aware signatures (recipeCategoryOf/groceryCategoryOf accept libraryOrIndex per D-26..D-28) + D-35 keyword fixes (remove bare pepper/peppers from RECIPE Veg; add to GROCERY Produce; remove stale 'pepper' from GROCERY Aisle per 03-REVISION-1 W-2) + D-36 BLOCKER closure (matchRawLibrary uses canonical normalizeIngredientText). Added 15 tests. NO require(./library).
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 03-03-PLAN.md — lib/calc.js library threading (buildGroceryView + decorateIngredients build index once per render, attach libraryEntryId per D-31..D-34); routes/recipes.js call-site update; views/recipe.njk line 24 -> ing.text; test/calc.test.js +11 tests + the 6 USER-AUTHORIZED line edits per SC#5/D-31 resolution.
@@ -122,7 +122,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/1 | Planned | - |
 | 2. Library Helpers | 0/3 | Planned | - |
-| 3. Categorization Layering | 0/? | Not started | - |
+| 3. Categorization Layering | 2/3 | In progress | - |
 | 4. Auto-Extract & Backfill | 0/? | Not started | - |
 | 5. Library Tab | 0/? | Not started | - |
 | 6. Inline Fix | 0/? | Not started | - |

@@ -16,7 +16,7 @@
 
 ### Matching & Categorization (MATCH)
 
-- [ ] **MATCH-01**: `recipeCategoryOf` and `groceryCategoryOf` accept an optional `library` parameter. When provided, library aliases are checked first (longest-alias-wins, word-boundary regex, same shape as existing keyword index). On no library hit, fall back to existing keyword tables. On no match anywhere, return `'Other'`.
+- [x] **MATCH-01**: `recipeCategoryOf` and `groceryCategoryOf` accept an optional `library` parameter. When provided, library aliases are checked first (longest-alias-wins, word-boundary regex, same shape as existing keyword index). On no library hit, fall back to existing keyword tables. On no match anywhere, return `'Other'`. *(Closed by Plan 03-02 — commits 9336d89, 57a30b3, 6a248ac.)*
 - [ ] **MATCH-02**: `decorateIngredients(ingredients, library)` and `buildGroceryView(state)` thread the library through to the matcher. Categorization is computed fresh on every render (no precomputed category storage on grocery items or recipe ingredients).
 - [ ] **MATCH-03**: `lib/library.js#findEntryByText` returns the matched entry id (not just a category) so the inline Fix shortcut knows which entry to open.
 
@@ -80,7 +80,7 @@ These are anti-features captured during research and decision-making. Reasoning 
 | FND-02 | Phase 1 | Atomic with FND-01, FND-03, FND-04 |
 | FND-03 | Phase 1 + 2 | Skeleton in Phase 1; full helpers in Phase 2 |
 | FND-04 | Phase 1 | Ships in same commit as storage migration |
-| MATCH-01 | Phase 3 | |
+| MATCH-01 | Phase 3 | Closed by Plan 03-02 (library-aware categorize signatures + D-35 keyword fixes + D-36 BLOCKER closure) |
 | MATCH-02 | Phase 3 | |
 | MATCH-03 | Phase 3 | `findEntryByText` returns entry id |
 | EXTR-01 | Phase 4 | Requires Phase 2 normalization |

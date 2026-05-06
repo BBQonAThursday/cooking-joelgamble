@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-last_updated: "2026-05-06T19:33:54.015Z"
+last_updated: "2026-05-06T20:15:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 7
-  completed_plans: 4
-  percent: 57
+  completed_plans: 5
+  percent: 71
 ---
 
 # Project State — Ingredient Library
@@ -30,12 +30,12 @@ progress:
 ## Current Position
 
 Phase: 3
-Plan: 03-02 (next)
+Plan: 03-03 (next)
 | Field | Value |
 |-------|-------|
 | **Phase** | 3 — Categorization Layering |
-| **Plan** | 03-01-PLAN.md COMPLETE (commits 847d4e4, 4ff63c3); 03-02-PLAN.md ready to execute next |
-| **Status** | Plan 03-01 done — normalizer moved to categorize, library index helpers added, 12 new tests, 258/258 passing |
+| **Plan** | 03-02-PLAN.md COMPLETE (commits 9336d89, 57a30b3, 6a248ac); 03-03-PLAN.md ready to execute next (Wave 2 — calc.js library threading) |
+| **Status** | Plan 03-02 done — recipeCategoryOf/groceryCategoryOf library-aware; D-35 pepper fixes; D-36 BLOCKER closed; 15 new tests; 273/273 passing |
 | **Blocking** | Nothing |
 
 **Progress:**
@@ -43,7 +43,7 @@ Plan: 03-02 (next)
 ```
 Phase 1 [          ] 0%
 Phase 2 [          ] 0%
-Phase 3 [###       ] 33%
+Phase 3 [######    ] 67%
 Phase 4 [          ] 0%
 Phase 5 [          ] 0%
 Phase 6 [          ] 0%
@@ -60,8 +60,12 @@ Milestone [          ] 0%
 | Phases total | 6 |
 | Phases complete | 0 |
 | Requirements mapped | 21 / 21 |
-| Plans written | 1 |
-| Plans complete | 0 |
+| Plans written | 7 |
+| Plans complete | 5 |
+| Plan 03-02 duration | ~12 min |
+| Plan 03-02 tasks | 2 |
+| Plan 03-02 files modified | 2 |
+| Plan 03-02 tests added | 15 |
 
 ---
 
@@ -69,6 +73,7 @@ Milestone [          ] 0%
 
 ### Key Decisions Locked In
 
+- **Plan 03-02 closures (2026-05-06):** D-26/D-27/D-28 implemented as a single guard (`match && typeof match.recipeCategory === 'string'`). Library 'Other' wins over heuristic. D-35 keyword fixes applied (RECIPE Veg trim + GROCERY Produce additions + GROCERY Aisle stale token removal per W-2). D-36 BLOCKER closed: `matchRawLibrary` calls module-local `normalizeIngredientText` so raw-library and pre-built-index paths are byte-equivalent. One Rule 1 deviation: added `'red pepper flakes'` (plural) to RECIPE Seasoning since the singular `'red pepper flake'` doesn't word-boundary-match the plural form.
 - **Phase 1 is atomic.** FND-01 + FND-02 + FND-03 + FND-04 ship in one commit. The pea heuristic bug fix, `aliasConflict` validator, and `libraryMigratedAt` flag are co-dependent. Any split requires a data-repair migration.
 - **`libraryMigratedAt` (not `library.length === 0`) is the backfill guard.** Empty library after user cleanup must not trigger re-backfill.
 - **Backfill runs at server startup, synchronously, before accepting requests.** Not on first GET /library — avoids serving partial-library state.
@@ -117,4 +122,6 @@ None.
 
 **To resume:** Read `ROADMAP.md` for phase goals and success criteria. Read `REQUIREMENTS.md` traceability table for current phase assignments. Read `.planning/phases/01-foundation/01-CONTEXT.md` for locked Phase 1 implementation decisions. Check which phase's `Plans` section has been updated from `TBD` to know where planning left off.
 
-**Next action:** `/gsd-execute-phase 1` — execute `01-01-PLAN.md` (3 tasks, single wave, single atomic commit per D-12).
+**Last session:** 2026-05-06 — completed plan 03-02 (3 commits: 9336d89 feat, 57a30b3 fix, 6a248ac test). Stopped at: end of plan 03-02 SUMMARY.
+
+**Next action:** `/gsd-execute-phase 3` — execute `03-03-PLAN.md` (Wave 2; lib/calc.js library threading + routes/recipes.js call-site update + views/recipe.njk line 24 -> ing.text + test/calc.test.js +11 tests).
