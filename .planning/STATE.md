@@ -1,3 +1,17 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-05-06T00:29:37.139Z"
+progress:
+  total_phases: 6
+  completed_phases: 0
+  total_plans: 1
+  completed_plans: 0
+  percent: 0
+---
+
 # Project State — Ingredient Library
 
 **Last updated:** 2026-05-05
@@ -9,12 +23,14 @@
 
 **Core value:** Ingredient categorization on the grocery list and recipe detail pages converges toward accuracy as the user curates their library, replacing the brittle keyword-table heuristic with a personal source of truth.
 
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 01 — foundation
 
 ---
 
 ## Current Position
 
+Phase: 01 (foundation) — EXECUTING
+Plan: 1 of 1
 | Field | Value |
 |-------|-------|
 | **Phase** | 1 — Foundation |
@@ -23,6 +39,7 @@
 | **Blocking** | Nothing |
 
 **Progress:**
+
 ```
 Phase 1 [          ] 0%
 Phase 2 [          ] 0%

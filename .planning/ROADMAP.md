@@ -32,7 +32,7 @@
   5. Server starts cleanly against a state file that was created before this migration; no crashes, no data loss.
 **Plans:** 1 plan
 Plans:
-- [ ] 01-01-PLAN.md — Atomic Foundation: storage migration (library + libraryMigratedAt) + categorize pea-bug fix (\b\b regex + plural keyword audit) + lib/library.js skeleton (newLibraryId, newLibraryEntry, aliasConflict). One commit per D-12.
+- [x] 01-01-PLAN.md — Atomic Foundation: storage migration (library + libraryMigratedAt) + categorize pea-bug fix (\b\b regex + plural keyword audit) + lib/library.js skeleton (newLibraryId, newLibraryEntry, aliasConflict). One commit per D-12.
 
 ### Phase 2: Library Helpers
 **Goal**: All pure business-logic functions for ingredient normalization, alias matching, and entry extraction exist in `lib/library.js`, fully tested and ready to be called by routes and the categorization layer.
