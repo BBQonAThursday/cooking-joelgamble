@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
   newLibraryId, newLibraryEntry,
-  normalizeIngredientText, findEntryByText,
+  normalizeIngredientText, findEntryByText, extractAndSeed,
   aliasConflict
 } = require('../lib/library');
 
@@ -475,4 +475,16 @@ test('findEntryByText: skips entries with missing or non-array aliases without c
 
 test('findEntryByText: returns undefined when library is empty', () => {
   assert.strictEqual(findEntryByText({ library: [] }, 'garlic'), undefined);
+});
+
+// --- extractAndSeed (RED gate -- minimal failing test, full block lands in Task 2) ---
+
+test('extractAndSeed creates at most one entry per normalized root per call (SC#2 RED gate)', () => {
+  // Minimal RED gate for Task 1: proves extractAndSeed exists and seeds entries.
+  // Full canonical test block lands in Task 2 (D-17/D-18/D-19/D-20/D-21 coverage).
+  const state = { library: [] };
+  const result = extractAndSeed(state, ['garlic cloves', 'garlic clove']);
+  assert.strictEqual(result.ok, true);
+  // 'garlic cloves' and 'garlic clove' collapse via D-19 final-s strip + D-18 subset rule.
+  assert.strictEqual(result.added.length, 1);
 });
