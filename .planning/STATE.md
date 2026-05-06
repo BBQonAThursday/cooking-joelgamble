@@ -19,7 +19,7 @@
 |-------|-------|
 | **Phase** | 1 — Foundation |
 | **Plan** | None started |
-| **Status** | Not started |
+| **Status** | Context gathered (CONTEXT.md committed); ready for planning |
 | **Blocking** | Nothing |
 
 **Progress:**
@@ -98,6 +98,6 @@ None.
 
 ## Session Continuity
 
-**To resume:** Read `ROADMAP.md` for phase goals and success criteria. Read `REQUIREMENTS.md` traceability table for current phase assignments. Check which phase's `Plans` section has been updated from `TBD` to know where planning left off.
+**To resume:** Read `ROADMAP.md` for phase goals and success criteria. Read `REQUIREMENTS.md` traceability table for current phase assignments. Read `.planning/phases/01-foundation/01-CONTEXT.md` for locked Phase 1 implementation decisions. Check which phase's `Plans` section has been updated from `TBD` to know where planning left off.
 
-**Next action:** `/gsd-plan-phase 1` — decompose Phase 1 (Foundation) into executable tasks.
+**Next action:** `/gsd-plan-phase 1` — decompose Phase 1 (Foundation) into executable tasks using the locked decisions in `01-CONTEXT.md`.
