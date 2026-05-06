@@ -1,6 +1,10 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { newLibraryId, newLibraryEntry, normalizeIngredientText, aliasConflict } = require('../lib/library');
+const {
+  newLibraryId, newLibraryEntry,
+  normalizeIngredientText, findEntryByText,
+  aliasConflict
+} = require('../lib/library');
 
 // --- newLibraryId ----------------------------------------------------------
 
@@ -328,4 +332,147 @@ test('aliasConflict still distinguishes "garlic powder" from "garlic" after norm
   const conflict = aliasConflict(state, 'garlic');
   assert.ok(conflict);
   assert.strictEqual(conflict.id, 'lb_aaaaaaaa');
+});
+
+// --- findEntryByText -------------------------------------------------------
+
+test('findEntryByText returns undefined for empty/whitespace/non-string text input', () => {
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'garlic', aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  assert.strictEqual(findEntryByText(state, ''), undefined);
+  assert.strictEqual(findEntryByText(state, '   '), undefined);
+  assert.strictEqual(findEntryByText(state, null), undefined);
+  assert.strictEqual(findEntryByText(state, undefined), undefined);
+  assert.strictEqual(findEntryByText(state, 42), undefined);
+});
+
+test('findEntryByText returns undefined when state has no library', () => {
+  assert.strictEqual(findEntryByText({}, 'garlic'), undefined);
+  assert.strictEqual(findEntryByText({ library: null }, 'garlic'), undefined);
+  assert.strictEqual(findEntryByText({ library: 'nope' }, 'garlic'), undefined);
+});
+
+test('findEntryByText returns undefined when no alias matches', () => {
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'garlic', aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  assert.strictEqual(findEntryByText(state, 'xyzzy unknown ingredient'), undefined);
+});
+
+test('findEntryByText returns the matching entry (with id, MATCH-03)', () => {
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'garlic', aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  const match = findEntryByText(state, '2 cloves garlic, minced');
+  assert.ok(match);
+  assert.strictEqual(match.id, 'lb_aaaaaaaa');
+  assert.match(match.id, /^lb_[0-9a-z]{8}$/);
+});
+
+test('findEntryByText is case-insensitive against the raw input', () => {
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'olive oil', aliases: ['olive oil'], recipeCategory: 'Flavor', groceryCategory: 'Aisle', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  assert.strictEqual(findEntryByText(state, 'OLIVE OIL').id, 'lb_aaaaaaaa');
+  assert.strictEqual(findEntryByText(state, '1 tbsp Olive Oil').id, 'lb_aaaaaaaa');
+});
+
+test('findEntryByText: longest alias wins (D-22)', () => {
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'olive oil',              aliases: ['olive oil'],              recipeCategory: 'Flavor', groceryCategory: 'Aisle', curated: true, createdAt: '2026-05-05T00:00:00.000Z' },
+      { id: 'lb_bbbbbbbb', name: 'extra virgin olive oil', aliases: ['extra virgin olive oil'], recipeCategory: 'Flavor', groceryCategory: 'Aisle', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  // Both aliases match 'extra virgin olive oil'; the longer one wins.
+  const match = findEntryByText(state, '1 tbsp extra virgin olive oil');
+  assert.ok(match);
+  assert.strictEqual(match.id, 'lb_bbbbbbbb');
+});
+
+test('findEntryByText: word-boundary regression -- alias "pea" does NOT match "peanut butter"', () => {
+  // Mirrors the lib/categorize.js Phase 1 pea-prefix-bug regression.
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'pea', aliases: ['pea'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  assert.strictEqual(findEntryByText(state, 'peanut butter'), undefined);
+  assert.strictEqual(findEntryByText(state, '1 tbsp peanut butter'), undefined);
+  // Sanity: a standalone 'pea' token DOES still match (proves the regex isn't
+  // broken in the other direction). The plan added a 'peas' check here originally
+  // but \bpea\b will not match 'peas' either -- that case is covered in the
+  // next test below.
+  assert.ok(findEntryByText(state, 'a pea'));
+  assert.strictEqual(findEntryByText(state, 'a pea').id, 'lb_aaaaaaaa');
+});
+
+test('findEntryByText: \\bpea\\b does NOT match "peas" either (no stemming, no prefix match)', () => {
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'pea', aliases: ['pea'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  // Confirms the bilateral \b\b regex is strict -- 'peas' is a different word.
+  assert.strictEqual(findEntryByText(state, '1 cup peas'), undefined);
+  // To match plurals, the user adds 'peas' as a separate alias on the same entry.
+  state.library[0].aliases.push('peas');
+  assert.strictEqual(findEntryByText(state, '1 cup peas').id, 'lb_aaaaaaaa');
+});
+
+test('findEntryByText: curated tiebreaker -- curated wins over uncurated on equal-length aliases (D-24)', () => {
+  // Same alias 'garlic' on two entries (cross-entry conflict the Library tab will surface).
+  // Both length 6; curated entry must win regardless of array order.
+  const stateCuratedFirst = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'garlic',          aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true,  createdAt: '2026-05-05T00:00:00.000Z' },
+      { id: 'lb_bbbbbbbb', name: 'minced garlic',   aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: false, createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  const stateUncuratedFirst = {
+    library: [
+      { id: 'lb_bbbbbbbb', name: 'minced garlic',   aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: false, createdAt: '2026-05-05T00:00:00.000Z' },
+      { id: 'lb_aaaaaaaa', name: 'garlic',          aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true,  createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  assert.strictEqual(findEntryByText(stateCuratedFirst,   'garlic').id, 'lb_aaaaaaaa');
+  assert.strictEqual(findEntryByText(stateUncuratedFirst, 'garlic').id, 'lb_aaaaaaaa');
+});
+
+test('findEntryByText: array-order tiebreaker on equal length + equal curation (D-24)', () => {
+  // Both uncurated, both 'garlic' alias -- earlier array index wins.
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'garlic',          aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: false, createdAt: '2026-05-05T00:00:00.000Z' },
+      { id: 'lb_bbbbbbbb', name: 'minced garlic',   aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: false, createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  assert.strictEqual(findEntryByText(state, 'garlic').id, 'lb_aaaaaaaa');
+});
+
+test('findEntryByText: skips entries with missing or non-array aliases without crashing', () => {
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'a' /* missing aliases */, recipeCategory: 'Veg', groceryCategory: 'Produce', curated: false, createdAt: '2026-05-05T00:00:00.000Z' },
+      { id: 'lb_bbbbbbbb', name: 'b', aliases: 'not-an-array', recipeCategory: 'Veg', groceryCategory: 'Produce', curated: false, createdAt: '2026-05-05T00:00:00.000Z' },
+      { id: 'lb_cccccccc', name: 'garlic', aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  // The third entry (with valid aliases) is the only one matchable.
+  const match = findEntryByText(state, 'garlic');
+  assert.ok(match);
+  assert.strictEqual(match.id, 'lb_cccccccc');
+});
+
+test('findEntryByText: returns undefined when library is empty', () => {
+  assert.strictEqual(findEntryByText({ library: [] }, 'garlic'), undefined);
 });
