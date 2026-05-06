@@ -68,6 +68,7 @@ test('recipeCategoryOf does not match on non-word-boundary substrings', () => {
 });
 
 const { groceryCategoryOf, GROCERY_CATEGORIES } = require('../lib/categorize');
+const { buildLibraryIndex } = require('../lib/library');
 
 test('GROCERY_CATEGORIES is the canonical ordered list', () => {
   assert.deepStrictEqual(GROCERY_CATEGORIES, ['Produce', 'Meat', 'Dairy', 'Aisle', 'Frozen', 'Other']);
@@ -165,4 +166,134 @@ test('groceryCategoryOf still classifies plurals correctly after \\b\\b fix', ()
   assert.strictEqual(groceryCategoryOf('1 cup mushrooms'), 'Produce');
   assert.strictEqual(groceryCategoryOf('1 can chickpeas'), 'Aisle');
   assert.strictEqual(groceryCategoryOf('1 bag frozen peas'), 'Frozen');
+});
+
+// --- Phase 3 library-aware tests (MATCH-01, D-26..D-28) ----------------------
+
+test('recipeCategoryOf library priority: library entry overrides heuristic (D-26 raw-library form)', () => {
+  // Heuristic would say 'black pepper' -> Seasoning. Library overrides to Flavor.
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'black pepper', aliases: ['black pepper'], recipeCategory: 'Flavor', groceryCategory: 'Aisle', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+    ]
+  };
+  assert.strictEqual(recipeCategoryOf('1 tsp black pepper', state.library), 'Flavor');
+});
+
+test('groceryCategoryOf library priority: library entry overrides heuristic (D-26 raw-library form)', () => {
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'black pepper', aliases: ['black pepper'], recipeCategory: 'Flavor', groceryCategory: 'Aisle', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+    ]
+  };
+  assert.strictEqual(groceryCategoryOf('1 tsp black pepper', state.library), 'Aisle');
+});
+
+test('recipeCategoryOf accepts pre-built index from buildLibraryIndex (D-26 hot-path form)', () => {
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'peanut butter', aliases: ['peanut butter'], recipeCategory: 'Flavor', groceryCategory: 'Aisle', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+    ]
+  };
+  const idx = buildLibraryIndex(state.library);
+  assert.strictEqual(recipeCategoryOf('1 tbsp peanut butter', idx), 'Flavor');
+  assert.strictEqual(groceryCategoryOf('1 tbsp peanut butter', idx), 'Aisle');
+});
+
+test('recipeCategoryOf SC#1 ergonomics: library array form works (peanut butter)', () => {
+  // SC#1 of ROADMAP wording: recipeCategoryOf('peanut butter', state.library) returns library's category.
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'peanut butter', aliases: ['peanut butter'], recipeCategory: 'Flavor', groceryCategory: 'Aisle', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+    ]
+  };
+  assert.strictEqual(recipeCategoryOf('peanut butter', state.library), 'Flavor');
+});
+
+test('recipeCategoryOf D-28: library "Other" does NOT fall through to heuristic', () => {
+  // Heuristic alone says 'onion' -> Veg. User curated 'onion' as Other (deliberate
+  // choice). Library 'Other' must win and NOT fall through to the keyword path.
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'onion', aliases: ['onion'], recipeCategory: 'Other', groceryCategory: 'Other', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+    ]
+  };
+  assert.strictEqual(recipeCategoryOf('1 onion', state.library), 'Other');
+  assert.strictEqual(groceryCategoryOf('1 onion', state.library), 'Other');
+});
+
+test('recipeCategoryOf D-26 fallback: empty library array falls through to heuristic', () => {
+  // SC#5 backwards compat -- empty library means the heuristic path runs identical to single-arg.
+  assert.strictEqual(recipeCategoryOf('1 onion', []), recipeCategoryOf('1 onion'));
+  assert.strictEqual(recipeCategoryOf('1 onion', []), 'Veg');
+});
+
+test('recipeCategoryOf D-26 fallback: null library falls through to heuristic', () => {
+  assert.strictEqual(recipeCategoryOf('1 onion', null), 'Veg');
+  assert.strictEqual(recipeCategoryOf('1 onion', undefined), 'Veg');
+});
+
+test('recipeCategoryOf D-26 fallback: library with no matching alias falls through to heuristic', () => {
+  // Library has only 'tofu'; input is 'chicken broth' -- no library hit, heuristic 'Flavor' wins.
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'tofu', aliases: ['tofu'], recipeCategory: 'Protein', groceryCategory: 'Aisle', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+    ]
+  };
+  assert.strictEqual(recipeCategoryOf('1 cup chicken broth', state.library), 'Flavor');
+});
+
+test('groceryCategoryOf D-26 fallback: empty / null / no-match all use heuristic', () => {
+  assert.strictEqual(groceryCategoryOf('1 cup milk', []), 'Dairy');
+  assert.strictEqual(groceryCategoryOf('1 cup milk', null), 'Dairy');
+  assert.strictEqual(groceryCategoryOf('1 cup milk', [
+    { id: 'lb_aaaaaaaa', name: 'tofu', aliases: ['tofu'], recipeCategory: 'Protein', groceryCategory: 'Aisle', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+  ]), 'Dairy');
+});
+
+// --- D-35: bare 'pepper'/'peppers' regression (Phase 1 carryover) ------------
+
+test('D-35 RECIPE: black pepper maps to Seasoning (was incorrectly Veg before D-35)', () => {
+  assert.strictEqual(recipeCategoryOf('1 tsp black pepper'), 'Seasoning');
+  assert.strictEqual(recipeCategoryOf('1/2 tsp white pepper'), 'Seasoning');
+  assert.strictEqual(recipeCategoryOf('1 tsp peppercorns'), 'Seasoning');
+});
+
+test('D-35 RECIPE: red pepper flakes still wins as Seasoning (longer keyword still beats bell)', () => {
+  assert.strictEqual(recipeCategoryOf('1 tsp red pepper flakes'), 'Seasoning');
+});
+
+test('D-35 RECIPE: red bell peppers still maps to Veg (bell variants intact)', () => {
+  assert.strictEqual(recipeCategoryOf('2 red bell peppers'), 'Veg');
+  assert.strictEqual(recipeCategoryOf('1 jalapeno, sliced'), 'Veg');
+});
+
+test('D-35 GROCERY: bare pepper / peppers map to Produce (newly added)', () => {
+  assert.strictEqual(groceryCategoryOf('peppers'), 'Produce');
+  assert.strictEqual(groceryCategoryOf('1 red pepper'), 'Produce');
+});
+
+test('D-35 GROCERY: red bell peppers still maps to Produce (bell variant intact)', () => {
+  assert.strictEqual(groceryCategoryOf('2 red bell peppers'), 'Produce');
+});
+
+// --- 03-REVISION-1 BLOCKER closure: D-36 raw-library normalization ---------
+
+test('D-36 raw-library form: alias whitespace/case noise is normalized via matchRawLibrary (BLOCKER fix)', () => {
+  // Per 03-REVISION-1: matchRawLibrary now uses normalizeIngredientText (moved
+  // from lib/library.js to lib/categorize.js per Plan 03-01 Approach A) so the
+  // raw-library path produces byte-equivalent regex compilation to the pre-built-
+  // index path. SC#1's user-facing wording works in BOTH forms.
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'garlic', aliases: ['  GARLIC  '], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+    ]
+  };
+  // Raw-library form (the form SC#1 uses).
+  assert.strictEqual(recipeCategoryOf('1 clove garlic', state.library), 'Veg');
+  assert.strictEqual(groceryCategoryOf('1 clove garlic', state.library), 'Produce');
+  // Pre-built-index form (the hot path).
+  const idx = buildLibraryIndex(state.library);
+  assert.strictEqual(recipeCategoryOf('1 clove garlic', idx), 'Veg');
+  assert.strictEqual(groceryCategoryOf('1 clove garlic', idx), 'Produce');
 });
