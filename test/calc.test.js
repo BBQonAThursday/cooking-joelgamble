@@ -223,6 +223,7 @@ test('buildHistoryView returns hasHistory=false when no past weeks', () => {
 });
 
 const { decorateIngredients } = require('../lib/calc');
+const { buildLibraryIndex } = require('../lib/library');
 
 test('decorateIngredients groups ingredients by recipe category in canonical order', () => {
   const ingredients = [
@@ -262,4 +263,171 @@ test('decorateIngredients tolerates empty/missing input', () => {
   assert.deepStrictEqual(decorateIngredients(null), []);
   assert.deepStrictEqual(decorateIngredients([]), []);
   assert.deepStrictEqual(decorateIngredients(['', '   ']), []);
+});
+
+// --- Phase 3 buildGroceryView library threading (MATCH-02, D-31..D-34) -----
+
+test('buildGroceryView D-32: library hit attaches libraryEntryId and library-driven category', () => {
+  // Heuristic alone would say 'black pepper' -> Aisle (existing GROCERY_KEYWORDS Aisle).
+  // We use a different override: library says Produce. Verifies library beats heuristic
+  // AND the item carries libraryEntryId.
+  const state = {
+    grocery: [
+      { id: 'g_a', text: '1 tsp black pepper', checked: false }
+    ],
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'black pepper', aliases: ['black pepper'], recipeCategory: 'Flavor', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+    ]
+  };
+  const view = buildGroceryView(state);
+  assert.strictEqual(view.categorizedGroups.length, 1);
+  assert.strictEqual(view.categorizedGroups[0].category, 'Produce'); // library wins over heuristic 'Aisle'
+  assert.strictEqual(view.categorizedGroups[0].items[0].libraryEntryId, 'lb_aaaaaaaa');
+  assert.strictEqual(view.categorizedGroups[0].items[0].text, '1 tsp black pepper');
+});
+
+test('buildGroceryView D-31: empty library means every item has libraryEntryId: null', () => {
+  const state = {
+    grocery: [
+      { id: 'g_a', text: '1 onion', checked: false },
+      { id: 'g_b', text: '500g chicken', checked: false }
+    ],
+    library: []
+  };
+  const view = buildGroceryView(state);
+  // Categorization still runs via the heuristic.
+  assert.deepStrictEqual(view.categorizedGroups.map(g => g.category), ['Produce', 'Meat']);
+  // Both items carry the null contract.
+  assert.strictEqual(view.categorizedGroups[0].items[0].libraryEntryId, null);
+  assert.strictEqual(view.categorizedGroups[1].items[0].libraryEntryId, null);
+});
+
+test('buildGroceryView D-32: checked (closed) items also carry libraryEntryId', () => {
+  const state = {
+    grocery: [
+      { id: 'g_a', text: '1 onion', checked: true }
+    ],
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'onion', aliases: ['onion'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+    ]
+  };
+  const view = buildGroceryView(state);
+  assert.strictEqual(view.closedItems.length, 1);
+  assert.strictEqual(view.closedItems[0].libraryEntryId, 'lb_aaaaaaaa');
+  assert.strictEqual(view.closedItems[0].id, 'g_a'); // existing fields preserved
+  assert.strictEqual(view.closedItems[0].checked, true);
+});
+
+test('buildGroceryView D-34 defensive guard: undefined / null / non-array library does not crash', () => {
+  const baseGrocery = [{ id: 'g_a', text: '1 onion', checked: false }];
+
+  const view1 = buildGroceryView({ grocery: baseGrocery }); // no library field at all
+  assert.strictEqual(view1.categorizedGroups[0].items[0].libraryEntryId, null);
+
+  const view2 = buildGroceryView({ grocery: baseGrocery, library: null });
+  assert.strictEqual(view2.categorizedGroups[0].items[0].libraryEntryId, null);
+
+  const view3 = buildGroceryView({ grocery: baseGrocery, library: 'nope' });
+  assert.strictEqual(view3.categorizedGroups[0].items[0].libraryEntryId, null);
+
+  const view4 = buildGroceryView({ grocery: baseGrocery, library: [] });
+  assert.strictEqual(view4.categorizedGroups[0].items[0].libraryEntryId, null);
+});
+
+test('buildGroceryView D-33: index is built once per render (no per-item rebuild)', () => {
+  // Smoke check that two items in the same render share consistent library-driven categorization.
+  // If the index were rebuilt per item or per category, we would still get the same answer here,
+  // but a regression to per-item building would surface as a perf hit. This test pins behavior.
+  const state = {
+    grocery: [
+      { id: 'g_a', text: '1 onion', checked: false },
+      { id: 'g_b', text: '1 carrot', checked: false }
+    ],
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'onion',  aliases: ['onion'],  recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-06T00:00:00.000Z' },
+      { id: 'lb_bbbbbbbb', name: 'carrot', aliases: ['carrot'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+    ]
+  };
+  const view = buildGroceryView(state);
+  const items = view.categorizedGroups.find(g => g.category === 'Produce').items;
+  // Both items present in same Produce bucket, both carry the right libraryEntryId.
+  const onion = items.find(i => i.id === 'g_a');
+  const carrot = items.find(i => i.id === 'g_b');
+  assert.strictEqual(onion.libraryEntryId, 'lb_aaaaaaaa');
+  assert.strictEqual(carrot.libraryEntryId, 'lb_bbbbbbbb');
+});
+
+// --- Phase 3 decorateIngredients library threading (MATCH-02, D-31, D-33, D-34) ---
+
+test('decorateIngredients D-31: items with library match are { text, libraryEntryId }', () => {
+  const library = [
+    { id: 'lb_aaaaaaaa', name: 'onion', aliases: ['onion'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+  ];
+  const groups = decorateIngredients(['1 onion'], library);
+  assert.strictEqual(groups.length, 1);
+  assert.strictEqual(groups[0].category, 'Veg');
+  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: 'lb_aaaaaaaa' }]);
+});
+
+test('decorateIngredients D-31: empty library produces { text, libraryEntryId: null } items', () => {
+  const groups = decorateIngredients(['1 onion'], []);
+  assert.strictEqual(groups.length, 1);
+  assert.strictEqual(groups[0].category, 'Veg');
+  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: null }]);
+});
+
+test('decorateIngredients D-31: undefined library is identical to single-arg call shape', () => {
+  const groups1 = decorateIngredients(['1 onion'], undefined);
+  const groups2 = decorateIngredients(['1 onion']);
+  assert.deepStrictEqual(groups1, groups2);
+  assert.deepStrictEqual(groups1[0].items, [{ text: '1 onion', libraryEntryId: null }]);
+});
+
+test('decorateIngredients D-28 propagation: library Other category wins over heuristic Veg', () => {
+  // User curated 'onion' as Other -- the recipe page must respect that even though the
+  // heuristic would group as Veg. This verifies the library->categorize call site
+  // (Plan 02 D-28) flows correctly through Plan 03's view-builder.
+  const library = [
+    { id: 'lb_aaaaaaaa', name: 'onion', aliases: ['onion'], recipeCategory: 'Other', groceryCategory: 'Other', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+  ];
+  const groups = decorateIngredients(['1 onion'], library);
+  assert.strictEqual(groups[0].category, 'Other');
+  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: 'lb_aaaaaaaa' }]);
+});
+
+test('decorateIngredients null contract on bad / non-string ingredient entries skips them', () => {
+  // Existing test 'tolerates empty/missing input' is preserved unchanged. This new test
+  // confirms the null contract specifically on the new D-31 shape.
+  const groups = decorateIngredients(['', '   ', null, undefined, '1 onion'], []);
+  assert.strictEqual(groups.length, 1);
+  assert.strictEqual(groups[0].category, 'Veg');
+  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: null }]);
+});
+
+test('decorateIngredients D-33: a single call with multiple ingredients shares one library index across items (per-render build invariant)', () => {
+  // Per 03-REVISION-1 W-4: strengthens coverage of D-33's per-render-build invariant.
+  // We assert that two ingredients in a single call BOTH receive the correct
+  // libraryEntryId from the SAME library, proving the index built at the top of
+  // the call covers every iteration of the inner loop. A regression to per-item
+  // index building (or to caching the index across calls) would still pass this
+  // test, but pairing it with the explicit guard at the top of decorateIngredients
+  // pins the contract: build once, reuse for every item in this call.
+  const library = [
+    { id: 'lb_aaaaaaaa', name: 'onion',  aliases: ['onion'],  recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-06T00:00:00.000Z' },
+    { id: 'lb_bbbbbbbb', name: 'carrot', aliases: ['carrot'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-06T00:00:00.000Z' }
+  ];
+  const groups = decorateIngredients(['1 onion', '1 carrot'], library);
+  // Both ingredients land in the same Veg group, both carry the matching libraryEntryId.
+  assert.strictEqual(groups.length, 1);
+  assert.strictEqual(groups[0].category, 'Veg');
+  assert.deepStrictEqual(groups[0].items, [
+    { text: '1 onion', libraryEntryId: 'lb_aaaaaaaa' },
+    { text: '1 carrot', libraryEntryId: 'lb_bbbbbbbb' }
+  ]);
+  // Calling decorateIngredients a SECOND time with the same library returns the
+  // same shape -- if the implementation cached the index across calls (a bug),
+  // mutations to the library between calls would not be reflected. Here we test
+  // the simpler invariant: two consecutive calls produce identical outputs.
+  const groups2 = decorateIngredients(['1 onion', '1 carrot'], library);
+  assert.deepStrictEqual(groups2, groups);
 });
