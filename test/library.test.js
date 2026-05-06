@@ -3,7 +3,8 @@ const assert = require('node:assert');
 const {
   newLibraryId, newLibraryEntry,
   normalizeIngredientText, findEntryByText, extractAndSeed,
-  aliasConflict
+  aliasConflict,
+  buildLibraryIndex, findEntryInIndex
 } = require('../lib/library');
 
 // --- newLibraryId ----------------------------------------------------------
@@ -666,4 +667,136 @@ test('extractAndSeed: aliasesAppended records carry { entryId, alias }', () => {
   const record = result.aliasesAppended[0];
   assert.strictEqual(record.entryId, 'lb_aaaaaaaa');
   assert.strictEqual(record.alias, 'minced garlic');
+});
+
+// --- buildLibraryIndex ---------------------------------------------------
+
+test('buildLibraryIndex returns [] for empty / non-array / missing library', () => {
+  assert.deepStrictEqual(buildLibraryIndex([]), []);
+  assert.deepStrictEqual(buildLibraryIndex(null), []);
+  assert.deepStrictEqual(buildLibraryIndex(undefined), []);
+  assert.deepStrictEqual(buildLibraryIndex('nope'), []);
+});
+
+test('buildLibraryIndex builds one row per non-empty alias with the documented shape', () => {
+  const library = [
+    { id: 'lb_aaaaaaaa', name: 'garlic', aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+  ];
+  const idx = buildLibraryIndex(library);
+  assert.strictEqual(idx.length, 1);
+  const row = idx[0];
+  assert.ok(row.regex instanceof RegExp);
+  assert.strictEqual(row.regex.test('1 clove garlic, minced'), true);
+  assert.strictEqual(row.length, 6);
+  assert.strictEqual(row.curated, true);
+  assert.strictEqual(row.arrayIndex, 0);
+  assert.strictEqual(row.entry, library[0]); // reference equality
+  assert.strictEqual(row.recipeCategory, 'Veg');
+  assert.strictEqual(row.groceryCategory, 'Produce');
+});
+
+test('buildLibraryIndex sort order: length DESC, curated DESC, arrayIndex ASC', () => {
+  const library = [
+    { id: 'lb_aaaaaaaa', name: 'olive oil',              aliases: ['olive oil'],              recipeCategory: 'Flavor', groceryCategory: 'Aisle', curated: false, createdAt: '2026-05-05T00:00:00.000Z' },
+    { id: 'lb_bbbbbbbb', name: 'extra virgin olive oil', aliases: ['extra virgin olive oil'], recipeCategory: 'Flavor', groceryCategory: 'Aisle', curated: false, createdAt: '2026-05-05T00:00:00.000Z' },
+    { id: 'lb_cccccccc', name: 'olive',                  aliases: ['olive oil'],              recipeCategory: 'Flavor', groceryCategory: 'Aisle', curated: true,  createdAt: '2026-05-05T00:00:00.000Z' }
+  ];
+  const idx = buildLibraryIndex(library);
+  // Expect order: 'extra virgin olive oil' (longest), then 'olive oil' curated (lb_cccccccc), then 'olive oil' uncurated arrayIndex 0 (lb_aaaaaaaa).
+  assert.strictEqual(idx.length, 3);
+  assert.strictEqual(idx[0].entry.id, 'lb_bbbbbbbb');
+  assert.strictEqual(idx[1].entry.id, 'lb_cccccccc');
+  assert.strictEqual(idx[2].entry.id, 'lb_aaaaaaaa');
+});
+
+test('buildLibraryIndex normalizes the stored alias before regex compile (D-36)', () => {
+  const library = [
+    { id: 'lb_aaaaaaaa', name: 'garlic', aliases: ['  GARLIC  '], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+  ];
+  const idx = buildLibraryIndex(library);
+  assert.strictEqual(idx.length, 1);
+  // Length is the post-normalize length (6), not the raw stored length (10).
+  assert.strictEqual(idx[0].length, 6);
+  // Regex matches the lowercased token regardless of stored noise.
+  assert.strictEqual(idx[0].regex.test('1 clove garlic, minced'), true);
+  assert.strictEqual(idx[0].regex.test('GARLIC'), true);
+});
+
+test('buildLibraryIndex skips aliases that normalize to empty', () => {
+  const library = [
+    { id: 'lb_aaaaaaaa', name: 'x', aliases: ['', '   ', 'garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+  ];
+  const idx = buildLibraryIndex(library);
+  assert.strictEqual(idx.length, 1);
+  assert.strictEqual(idx[0].length, 6);
+});
+
+test('buildLibraryIndex skips entries whose aliases field is missing or non-array', () => {
+  const library = [
+    { id: 'lb_aaaaaaaa', name: 'a' /* missing aliases */, recipeCategory: 'Veg', groceryCategory: 'Produce', curated: false, createdAt: '2026-05-05T00:00:00.000Z' },
+    { id: 'lb_bbbbbbbb', name: 'b', aliases: 'not-an-array', recipeCategory: 'Veg', groceryCategory: 'Produce', curated: false, createdAt: '2026-05-05T00:00:00.000Z' },
+    { id: 'lb_cccccccc', name: 'garlic', aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+  ];
+  const idx = buildLibraryIndex(library);
+  assert.strictEqual(idx.length, 1);
+  assert.strictEqual(idx[0].entry.id, 'lb_cccccccc');
+});
+
+// --- findEntryInIndex ----------------------------------------------------
+
+test('findEntryInIndex returns undefined for empty / null / non-array index', () => {
+  assert.strictEqual(findEntryInIndex([], 'garlic'), undefined);
+  assert.strictEqual(findEntryInIndex(null, 'garlic'), undefined);
+  assert.strictEqual(findEntryInIndex(undefined, 'garlic'), undefined);
+  assert.strictEqual(findEntryInIndex('nope', 'garlic'), undefined);
+});
+
+test('findEntryInIndex returns undefined for empty / non-string / whitespace text', () => {
+  const idx = buildLibraryIndex([
+    { id: 'lb_aaaaaaaa', name: 'garlic', aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+  ]);
+  assert.strictEqual(findEntryInIndex(idx, ''), undefined);
+  assert.strictEqual(findEntryInIndex(idx, '   '), undefined);
+  assert.strictEqual(findEntryInIndex(idx, null), undefined);
+  assert.strictEqual(findEntryInIndex(idx, undefined), undefined);
+  assert.strictEqual(findEntryInIndex(idx, 42), undefined);
+});
+
+test('findEntryInIndex returns undefined when no row regex matches', () => {
+  const idx = buildLibraryIndex([
+    { id: 'lb_aaaaaaaa', name: 'garlic', aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+  ]);
+  assert.strictEqual(findEntryInIndex(idx, 'xyzzy unknown ingredient'), undefined);
+});
+
+test('findEntryInIndex returns the matched entry with id, recipeCategory, groceryCategory (MATCH-03)', () => {
+  const idx = buildLibraryIndex([
+    { id: 'lb_aaaaaaaa', name: 'garlic', aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+  ]);
+  const match = findEntryInIndex(idx, '2 cloves garlic, minced');
+  assert.ok(match);
+  assert.strictEqual(match.id, 'lb_aaaaaaaa');
+  assert.strictEqual(match.recipeCategory, 'Veg');
+  assert.strictEqual(match.groceryCategory, 'Produce');
+});
+
+test('findEntryInIndex respects sort order (longest alias wins)', () => {
+  const idx = buildLibraryIndex([
+    { id: 'lb_aaaaaaaa', name: 'olive oil',              aliases: ['olive oil'],              recipeCategory: 'Flavor', groceryCategory: 'Aisle', curated: true, createdAt: '2026-05-05T00:00:00.000Z' },
+    { id: 'lb_bbbbbbbb', name: 'extra virgin olive oil', aliases: ['extra virgin olive oil'], recipeCategory: 'Flavor', groceryCategory: 'Aisle', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+  ]);
+  const match = findEntryInIndex(idx, '1 tbsp extra virgin olive oil');
+  assert.ok(match);
+  assert.strictEqual(match.id, 'lb_bbbbbbbb');
+});
+
+test('findEntryInIndex can be reused with a pre-built index across multiple inputs', () => {
+  const idx = buildLibraryIndex([
+    { id: 'lb_aaaaaaaa', name: 'garlic', aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' },
+    { id: 'lb_bbbbbbbb', name: 'onion',  aliases: ['onion'],  recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+  ]);
+  // Two consecutive calls against the same index -- verifies the helper is stateless.
+  assert.strictEqual(findEntryInIndex(idx, '1 onion').id, 'lb_bbbbbbbb');
+  assert.strictEqual(findEntryInIndex(idx, '1 clove garlic').id, 'lb_aaaaaaaa');
+  assert.strictEqual(findEntryInIndex(idx, 'xyzzy'), undefined);
 });
