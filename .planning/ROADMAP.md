@@ -65,7 +65,15 @@ Plans:
   3. `buildGroceryView(state)` attaches `libraryEntryId` (a non-null id string) to each grocery item that matches a library entry, and `null` for items with no library match.
   4. `decorateIngredients(ingredients, state.library)` returns ingredients grouped by the library-first category — a recipe re-render after editing a library entry immediately reflects the updated category.
   5. All existing `test/categorize.test.js` and `test/calc.test.js` tests pass without modification.
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+
+**Wave 1**
+- [ ] 03-01-PLAN.md — lib/library.js extensions (buildLibraryIndex, findEntryInIndex per D-29) + D-36 normalize-before-regex; findEntryByText becomes a wrapper. Adds 12 unit tests.
+- [ ] 03-02-PLAN.md — lib/categorize.js library-aware signatures (recipeCategoryOf/groceryCategoryOf accept libraryOrIndex per D-26..D-28) + D-35 keyword fixes (remove bare pepper/peppers from RECIPE Veg; add to GROCERY Produce). Adds 14 tests. NO require(./library).
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 03-03-PLAN.md — lib/calc.js library threading (buildGroceryView + decorateIngredients build index once per render, attach libraryEntryId per D-31..D-34); routes/recipes.js call-site update; views/recipe.njk line 24 -> ing.text; test/calc.test.js +11 tests + the 6 USER-AUTHORIZED line edits per SC#5/D-31 resolution.
 
 ### Phase 4: Auto-Extract & Backfill
 **Goal**: The library populates itself: new recipe saves automatically seed unmatched ingredients as `curated: false` entries, and all pre-existing recipes are backfilled exactly once on first startup after deploy.
