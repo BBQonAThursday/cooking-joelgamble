@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
   newLibraryId, newLibraryEntry,
-  normalizeIngredientText, findEntryByText,
+  normalizeIngredientText, findEntryByText, extractAndSeed,
   aliasConflict
 } = require('../lib/library');
 
@@ -475,4 +475,195 @@ test('findEntryByText: skips entries with missing or non-array aliases without c
 
 test('findEntryByText: returns undefined when library is empty', () => {
   assert.strictEqual(findEntryByText({ library: [] }, 'garlic'), undefined);
+});
+
+// --- extractAndSeed --------------------------------------------------------
+
+test('extractAndSeed returns { ok: true, added: [], aliasesAppended: [] } on empty input', () => {
+  const state = { library: [] };
+  assert.deepStrictEqual(extractAndSeed(state, []), { ok: true, added: [], aliasesAppended: [] });
+  assert.deepStrictEqual(extractAndSeed(state, undefined), { ok: true, added: [], aliasesAppended: [] });
+  assert.deepStrictEqual(extractAndSeed(state, null), { ok: true, added: [], aliasesAppended: [] });
+});
+
+test('extractAndSeed initializes state.library when missing', () => {
+  const state = {};
+  const result = extractAndSeed(state, ['salt']);
+  assert.ok(Array.isArray(state.library));
+  assert.strictEqual(state.library.length, 1);
+  assert.strictEqual(result.added.length, 1);
+});
+
+test('extractAndSeed filters empty/whitespace/non-string ingredients', () => {
+  const state = { library: [] };
+  const result = extractAndSeed(state, ['', '   ', null, undefined, 42, 'salt']);
+  assert.strictEqual(result.added.length, 1);
+  assert.strictEqual(state.library.length, 1);
+  assert.strictEqual(state.library[0].name, 'salt');
+});
+
+test('extractAndSeed seeds a new entry with heuristic categories (D-20 step 4)', () => {
+  const state = { library: [] };
+  const result = extractAndSeed(state, ['garlic']);
+  assert.strictEqual(result.added.length, 1);
+  const entry = result.added[0];
+  assert.strictEqual(entry.name, 'garlic');
+  assert.deepStrictEqual(entry.aliases, ['garlic']);
+  assert.strictEqual(entry.recipeCategory, 'Veg');
+  assert.strictEqual(entry.groceryCategory, 'Produce');
+  assert.strictEqual(entry.curated, false);
+});
+
+test('extractAndSeed seeds an unknown ingredient with both categories "Other"', () => {
+  const state = { library: [] };
+  const result = extractAndSeed(state, ['xyzzy']);
+  assert.strictEqual(result.added.length, 1);
+  assert.strictEqual(result.added[0].recipeCategory, 'Other');
+  assert.strictEqual(result.added[0].groceryCategory, 'Other');
+});
+
+test('extractAndSeed creates at most one entry per normalized root per call (SC#2)', () => {
+  // CORE PHASE 2 TEST. The locked D-18 subset rule plus D-19 stemming produces
+  // 2 entries from this 3-string corpus (NOT 3, NOT 1):
+  //   - 'garlic cloves' + 'garlic clove' collapse via D-19 final-s strip (subset both ways).
+  //   - 'minced garlic' has bag {garlic, minced}; vs staged {garlic, clove} neither set
+  //     is a subset of the other -- so it does NOT collapse. This is intentional per D-18:
+  //     'garlic powder' and 'garlic salt' must not collapse either.
+  // The "spirit" of SC#2 ("at most one entry per normalized root") is satisfied here:
+  // 'garlic cloves' and 'garlic clove' share a root and collapse; 'minced garlic' is a
+  // different normalized root. The Library tab (Phase 5) is the manual-cleanup affordance
+  // for any further consolidation the user wants.
+  const state = { library: [] };
+  const result = extractAndSeed(state, ['garlic cloves', 'garlic clove', 'minced garlic']);
+  assert.strictEqual(result.added.length, 2);
+  // The 'garlic cloves' / 'garlic clove' entry should carry both aliases.
+  const garlicEntry = result.added.find(e => e.name === 'garlic cloves');
+  assert.ok(garlicEntry);
+  assert.strictEqual(garlicEntry.aliases.length, 2);
+  assert.deepStrictEqual(garlicEntry.aliases.slice().sort(), ['garlic clove', 'garlic cloves'].sort());
+  // The 'minced garlic' entry stands alone.
+  const mincedEntry = result.added.find(e => e.name === 'minced garlic');
+  assert.ok(mincedEntry);
+  assert.deepStrictEqual(mincedEntry.aliases, ['minced garlic']);
+});
+
+test('extractAndSeed: subset rule positive case -- "garlic" subset of "garlic clove" collapses', () => {
+  const state = { library: [] };
+  const result = extractAndSeed(state, ['garlic', 'garlic clove']);
+  // {garlic} subset {garlic, clove} -> collapse to one entry.
+  assert.strictEqual(result.added.length, 1);
+  assert.strictEqual(result.added[0].aliases.length, 2);
+});
+
+test('extractAndSeed: subset rule negative case -- "garlic powder" and "garlic salt" do NOT collapse (D-18)', () => {
+  const state = { library: [] };
+  const result = extractAndSeed(state, ['garlic powder', 'garlic salt']);
+  // Neither {garlic, powder} subset {garlic, salt} nor vice versa -> no collapse.
+  assert.strictEqual(result.added.length, 2);
+});
+
+test('extractAndSeed: D-19 stemming -- "garlic cloves" and "garlic clove" collapse via final-s strip', () => {
+  // bagOfWords('garlic cloves') = {garlic, clove} (s-strip on cloves).
+  // bagOfWords('garlic clove')  = {garlic, clove} (no s).
+  // Subset both ways -> collapse.
+  const state = { library: [] };
+  const result = extractAndSeed(state, ['garlic cloves', 'garlic clove']);
+  assert.strictEqual(result.added.length, 1);
+  // Stored aliases retain D-16 (no stemming on stored output).
+  const stored = result.added[0].aliases.slice().sort();
+  assert.deepStrictEqual(stored, ['garlic clove', 'garlic cloves'].sort());
+});
+
+test('extractAndSeed: library-first wins -- existing curated entry absorbs new aliases (D-20 step 2)', () => {
+  // The user has a curated 'garlic' entry. A re-saved recipe brings in '2 cloves garlic' and
+  // 'minced garlic' -- both should auto-append to the existing entry, NOT seed new ones.
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'garlic', aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  const result = extractAndSeed(state, ['2 cloves garlic', 'minced garlic']);
+  assert.strictEqual(result.added.length, 0);
+  // '2 cloves garlic' normalizes to 'garlic' (alias already present -- no append).
+  // 'minced garlic' normalizes to 'minced garlic' (new alias -- one append).
+  assert.strictEqual(result.aliasesAppended.length, 1);
+  assert.strictEqual(result.aliasesAppended[0].entryId, 'lb_aaaaaaaa');
+  assert.strictEqual(result.aliasesAppended[0].alias, 'minced garlic');
+  // The curated flag is unchanged by auto-append (D-21 last sentence).
+  assert.strictEqual(state.library[0].curated, true);
+  // The entry's aliases now contain both 'garlic' and 'minced garlic'.
+  assert.ok(state.library[0].aliases.includes('garlic'));
+  assert.ok(state.library[0].aliases.includes('minced garlic'));
+});
+
+test('extractAndSeed: alias auto-append is gated by aliasConflict against OTHER entries (D-21)', () => {
+  // Two entries. Entry A has alias 'garlic'. Entry B already owns the alias
+  // 'minced garlic'. The candidate input is 'minced garlic'; longest-wins matches B
+  // directly -- so the alias is already present and no append happens. Nothing should
+  // be added to A either. This proves cross-entry duplicates are not introduced.
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'garlic',        aliases: ['garlic'],        recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true,  createdAt: '2026-05-05T00:00:00.000Z' },
+      { id: 'lb_bbbbbbbb', name: 'minced garlic', aliases: ['minced garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: false, createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  const result = extractAndSeed(state, ['minced garlic']);
+  assert.strictEqual(result.added.length, 0);
+  assert.strictEqual(result.aliasesAppended.length, 0);
+  // Entry A's aliases unchanged; entry B's aliases unchanged.
+  assert.deepStrictEqual(state.library[0].aliases, ['garlic']);
+  assert.deepStrictEqual(state.library[1].aliases, ['minced garlic']);
+});
+
+test('extractAndSeed: aliasConflict gate prevents writing duplicate aliases on repeat calls (SC#4 / EXTR-04)', () => {
+  // First call seeds 'salt'. Second call sees the seeded entry on the library-first step
+  // and does nothing.
+  const state = { library: [] };
+  const first = extractAndSeed(state, ['salt']);
+  assert.strictEqual(first.added.length, 1);
+  assert.strictEqual(state.library.length, 1);
+
+  const second = extractAndSeed(state, ['salt']);
+  assert.strictEqual(second.added.length, 0);
+  assert.strictEqual(second.aliasesAppended.length, 0);
+  assert.strictEqual(state.library.length, 1); // No new entry.
+  assert.strictEqual(state.library[0].aliases.length, 1); // No duplicate alias.
+});
+
+test('extractAndSeed: full repeat-call idempotency -- realistic recipe re-saved', () => {
+  // EXTR-04 + EXTR-01 prep. Phase 4 will gate `storage.save()` on
+  // `result.added.length || result.aliasesAppended.length`. Verify that on a
+  // repeat call with the same ingredients, BOTH are zero.
+  const state = { library: [] };
+  const ingredients = ['2 cloves garlic, minced', '1 tbsp olive oil', 'salt', 'pepper to taste'];
+  const first = extractAndSeed(state, ingredients);
+  assert.ok(first.added.length > 0); // First call seeds entries.
+  const beforeCount = state.library.length;
+
+  const second = extractAndSeed(state, ingredients);
+  assert.strictEqual(second.added.length, 0);
+  assert.strictEqual(second.aliasesAppended.length, 0);
+  assert.strictEqual(state.library.length, beforeCount); // No new entries.
+});
+
+test('extractAndSeed: return shape has exactly { ok, added, aliasesAppended } -- no extra fields', () => {
+  const state = { library: [] };
+  const result = extractAndSeed(state, ['salt']);
+  assert.deepStrictEqual(Object.keys(result).sort(), ['added', 'aliasesAppended', 'ok']);
+  assert.strictEqual(result.ok, true);
+  assert.ok(Array.isArray(result.added));
+  assert.ok(Array.isArray(result.aliasesAppended));
+});
+
+test('extractAndSeed: aliasesAppended records carry { entryId, alias }', () => {
+  const state = {
+    library: [
+      { id: 'lb_aaaaaaaa', name: 'garlic', aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '2026-05-05T00:00:00.000Z' }
+    ]
+  };
+  const result = extractAndSeed(state, ['minced garlic']);
+  assert.strictEqual(result.aliasesAppended.length, 1);
+  const record = result.aliasesAppended[0];
+  assert.strictEqual(record.entryId, 'lb_aaaaaaaa');
+  assert.strictEqual(record.alias, 'minced garlic');
 });
