@@ -53,7 +53,7 @@ Plans:
 - [x] 02-02-PLAN.md — findEntryByText: per-call regex index over state.library aliases with bilateral  word-boundary, sorted (length DESC, curated DESC, arrayIndex ASC) per D-22/D-23/D-24; returns owning entry or undefined per D-25.
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 02-03-PLAN.md — extractAndSeed: locked D-20 ordering (normalize -> library-first match -> in-progress bag-of-words subset collapse -> seed via newLibraryEntry); D-21 alias auto-append gated by aliasConflict; { ok, added, aliasesAppended } result for Phase 4 second-save gate.
+- [x] 02-03-PLAN.md — extractAndSeed: locked D-20 ordering (normalize -> library-first match -> in-progress bag-of-words subset collapse -> seed via newLibraryEntry); D-21 alias auto-append gated by aliasConflict; { ok, added, aliasesAppended } result for Phase 4 second-save gate.
 
 ### Phase 3: Categorization Layering
 **Goal**: Every render of a recipe ingredient list or grocery item uses library aliases first, falls back to the heuristic keyword tables, and attaches the matched library entry id to grocery items so the Fix shortcut knows which entry to open.
