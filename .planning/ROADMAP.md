@@ -30,7 +30,9 @@
   3. `aliasConflict` returns a truthy conflicting entry when two entries share a normalized alias, and returns falsy when the only match is the `excludingId` itself.
   4. `categorize.js` test for "peanut butter" returns `groceryCategory: 'Aisle'` (not `'Produce'`) — the `\bpea\b` word-boundary bug is patched.
   5. Server starts cleanly against a state file that was created before this migration; no crashes, no data loss.
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 01-01-PLAN.md — Atomic Foundation: storage migration (library + libraryMigratedAt) + categorize pea-bug fix (\b\b regex + plural keyword audit) + lib/library.js skeleton (newLibraryId, newLibraryEntry, aliasConflict). One commit per D-12.
 
 ### Phase 2: Library Helpers
 **Goal**: All pure business-logic functions for ingredient normalization, alias matching, and entry extraction exist in `lib/library.js`, fully tested and ready to be called by routes and the categorization layer.
@@ -101,7 +103,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/? | Not started | - |
+| 1. Foundation | 0/1 | Planned | - |
 | 2. Library Helpers | 0/? | Not started | - |
 | 3. Categorization Layering | 0/? | Not started | - |
 | 4. Auto-Extract & Backfill | 0/? | Not started | - |

@@ -18,8 +18,8 @@
 | Field | Value |
 |-------|-------|
 | **Phase** | 1 — Foundation |
-| **Plan** | None started |
-| **Status** | Context gathered (CONTEXT.md committed); ready for planning |
+| **Plan** | 01-01-PLAN.md (1 plan, wave 1) |
+| **Status** | Plan written and verified; ready to execute |
 | **Blocking** | Nothing |
 
 **Progress:**
@@ -43,7 +43,7 @@ Milestone [          ] 0%
 | Phases total | 6 |
 | Phases complete | 0 |
 | Requirements mapped | 21 / 21 |
-| Plans written | 0 |
+| Plans written | 1 |
 | Plans complete | 0 |
 
 ---
@@ -100,4 +100,4 @@ None.
 
 **To resume:** Read `ROADMAP.md` for phase goals and success criteria. Read `REQUIREMENTS.md` traceability table for current phase assignments. Read `.planning/phases/01-foundation/01-CONTEXT.md` for locked Phase 1 implementation decisions. Check which phase's `Plans` section has been updated from `TBD` to know where planning left off.
 
-**Next action:** `/gsd-plan-phase 1` — decompose Phase 1 (Foundation) into executable tasks using the locked decisions in `01-CONTEXT.md`.
+**Next action:** `/gsd-execute-phase 1` — execute `01-01-PLAN.md` (3 tasks, single wave, single atomic commit per D-12).
