@@ -235,11 +235,11 @@ test('decorateIngredients groups ingredients by recipe category in canonical ord
   ];
   const groups = decorateIngredients(ingredients);
   assert.deepStrictEqual(groups.map(g => g.category), ['Protein', 'Veg', 'Seasoning', 'Flavor', 'Other']);
-  assert.deepStrictEqual(groups[0].items, ['500g chicken thighs']);
-  assert.deepStrictEqual(groups[1].items, ['1 medium onion']);
-  assert.deepStrictEqual(groups[2].items, ['1 tsp salt']);
-  assert.deepStrictEqual(groups[3].items, ['2 tbsp olive oil']);
-  assert.deepStrictEqual(groups[4].items, ['something-uncategorized']);
+  assert.deepStrictEqual(groups[0].items, [{ text: '500g chicken thighs', libraryEntryId: null }]);
+  assert.deepStrictEqual(groups[1].items, [{ text: '1 medium onion', libraryEntryId: null }]);
+  assert.deepStrictEqual(groups[2].items, [{ text: '1 tsp salt', libraryEntryId: null }]);
+  assert.deepStrictEqual(groups[3].items, [{ text: '2 tbsp olive oil', libraryEntryId: null }]);
+  assert.deepStrictEqual(groups[4].items, [{ text: 'something-uncategorized', libraryEntryId: null }]);
 });
 
 test('decorateIngredients omits empty categories', () => {
@@ -255,7 +255,7 @@ test('decorateIngredients preserves item order within a group', () => {
     '1 tomato'
   ]);
   assert.strictEqual(groups.length, 1);
-  assert.deepStrictEqual(groups[0].items, ['1 onion', '1 carrot', '1 tomato']);
+  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: null }, { text: '1 carrot', libraryEntryId: null }, { text: '1 tomato', libraryEntryId: null }]);
 });
 
 test('decorateIngredients tolerates empty/missing input', () => {
