@@ -30,12 +30,12 @@ progress:
 ## Current Position
 
 Phase: 3
-Plan: Not started
+Plan: 03-02 (next)
 | Field | Value |
 |-------|-------|
-| **Phase** | 1 — Foundation |
-| **Plan** | 01-01-PLAN.md (1 plan, wave 1) |
-| **Status** | Plan written and verified; ready to execute |
+| **Phase** | 3 — Categorization Layering |
+| **Plan** | 03-01-PLAN.md COMPLETE (commits 847d4e4, 4ff63c3); 03-02-PLAN.md ready to execute next |
+| **Status** | Plan 03-01 done — normalizer moved to categorize, library index helpers added, 12 new tests, 258/258 passing |
 | **Blocking** | Nothing |
 
 **Progress:**
@@ -43,7 +43,7 @@ Plan: Not started
 ```
 Phase 1 [          ] 0%
 Phase 2 [          ] 0%
-Phase 3 [          ] 0%
+Phase 3 [###       ] 33%
 Phase 4 [          ] 0%
 Phase 5 [          ] 0%
 Phase 6 [          ] 0%
