@@ -47,7 +47,7 @@ Plans:
 **Plans:** 3 plans
 Plans:
 **Wave 1**
-- [ ] 02-01-PLAN.md — Normalization pipeline + WR-04 category validation: UNIT_TOKENS, inlined escapeRegex, normalizeIngredientText (5-step locked order D-13..D-16), repointed aliasKey shim, validated newLibraryEntry (closes WR-03/WR-04/IN-01/IN-02).
+- [x] 02-01-PLAN.md — Normalization pipeline + WR-04 category validation: UNIT_TOKENS, inlined escapeRegex, normalizeIngredientText (5-step locked order D-13..D-16), repointed aliasKey shim, validated newLibraryEntry (closes WR-03/WR-04/IN-01/IN-02).
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 02-02-PLAN.md — findEntryByText: per-call regex index over state.library aliases with bilateral  word-boundary, sorted (length DESC, curated DESC, arrayIndex ASC) per D-22/D-23/D-24; returns owning entry or undefined per D-25.
