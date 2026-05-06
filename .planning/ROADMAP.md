@@ -44,7 +44,16 @@ Plans:
   3. `findEntryByText(state, text)` returns the matching library entry (including its `id`) using longest-alias-wins, case-insensitive, word-boundary matching — not just a category string.
   4. `aliasConflict` is called inside `extractAndSeed` and prevents duplicate aliases from being written to `state.library` even when called repeatedly with the same ingredients.
   5. All helpers are pure functions verified by `test/library.test.js` using plain state objects; zero imports of `fs`, `http`, or Express.
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+**Wave 1**
+- [ ] 02-01-PLAN.md — Normalization pipeline + WR-04 category validation: UNIT_TOKENS, inlined escapeRegex, normalizeIngredientText (5-step locked order D-13..D-16), repointed aliasKey shim, validated newLibraryEntry (closes WR-03/WR-04/IN-01/IN-02).
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 02-02-PLAN.md — findEntryByText: per-call regex index over state.library aliases with bilateral  word-boundary, sorted (length DESC, curated DESC, arrayIndex ASC) per D-22/D-23/D-24; returns owning entry or undefined per D-25.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 02-03-PLAN.md — extractAndSeed: locked D-20 ordering (normalize -> library-first match -> in-progress bag-of-words subset collapse -> seed via newLibraryEntry); D-21 alias auto-append gated by aliasConflict; { ok, added, aliasesAppended } result for Phase 4 second-save gate.
 
 ### Phase 3: Categorization Layering
 **Goal**: Every render of a recipe ingredient list or grocery item uses library aliases first, falls back to the heuristic keyword tables, and attaches the matched library entry id to grocery items so the Fix shortcut knows which entry to open.
@@ -104,7 +113,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/1 | Planned | - |
-| 2. Library Helpers | 0/? | Not started | - |
+| 2. Library Helpers | 0/3 | Planned | - |
 | 3. Categorization Layering | 0/? | Not started | - |
 | 4. Auto-Extract & Backfill | 0/? | Not started | - |
 | 5. Library Tab | 0/? | Not started | - |
