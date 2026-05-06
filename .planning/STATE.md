@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-last_updated: "2026-05-06T22:09:24.000Z"
+last_updated: "2026-05-06T23:00:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 3
@@ -23,19 +23,19 @@ progress:
 
 **Core value:** Ingredient categorization on the grocery list and recipe detail pages converges toward accuracy as the user curates their library, replacing the brittle keyword-table heuristic with a personal source of truth.
 
-**Current focus:** Phase 4 — auto-extract-backfill (next)
+**Current focus:** Phase 4 — auto-extract-backfill (context gathered, ready to plan)
 
 ---
 
 ## Current Position
 
-Phase: 3 COMPLETE
-Plan: Phase 4 next
+Phase: 4 CONTEXT GATHERED
+Plan: ready for /gsd-plan-phase 4
 | Field | Value |
 |-------|-------|
-| **Phase** | 3 — Categorization Layering — COMPLETE |
-| **Plan** | 03-03-PLAN.md COMPLETE (commits 93b6bc8, 820d08a, 8789055, 18d79b4). Phase 3 closes MATCH-01, MATCH-02, MATCH-03; D-35, D-36, 02-REVIEW WR-01 closed; WR-04 partially closed. |
-| **Status** | All 3 Phase 3 plans done — buildGroceryView and decorateIngredients are library-aware; routes/recipes.js + views/recipe.njk wired; 11 new tests + 6 authorized SC#5/D-31 line edits; 284/284 passing |
+| **Phase** | 4 — Auto-Extract & Backfill — context complete |
+| **Plan** | 04-CONTEXT.md committed (46fa599). 15 decisions locked (D-37..D-51): pure lib/backfill.js, per-recipe walk in state.recipes order, bootstrap-only invocation in `require.main` block (preserves createApp test isolation), POST /recipes nested try/catch hook, best-effort failure policy with success toast, partial-backfill commits libraryMigratedAt unconditionally. |
+| **Status** | Phase 3 complete (284/284 passing). Phase 4 ready: 6 gray areas discussed, all answered with recommended options. |
 | **Blocking** | Nothing |
 
 **Progress:**
@@ -82,6 +82,7 @@ Milestone [#####     ] 50%
 
 ### Key Decisions Locked In
 
+- **Phase 4 context (2026-05-06):** D-37..D-51 lock the auto-extract & backfill shape. Pure `lib/backfill.js` exporting `runBackfill(state) → { alreadyRan, added, aliasesAppended }` (D-37). Idempotency guard is `state.libraryMigratedAt` truthy (D-38). Per-recipe walk in `state.recipes` insertion order — matches live POST semantics, no flat-aggregate cross-recipe collapse (D-39). Defensive `Array.isArray(recipe.ingredients)` skip + console.warn (D-40); per-recipe try/catch + console.error + continue (D-41); `libraryMigratedAt` set unconditionally after the loop (partial backfill is committed). Bootstrap site is the `if (require.main === module)` block in `server.js` — `createApp()` stays backfill-free so `_helpers.startTestServer` keeps existing route tests isolated (D-43, D-44). POST /recipes adds a nested try/catch after the existing `storage.save()` at line 42; second save only on `result.added.length || result.aliasesAppended.length` (D-46, D-47); best-effort failure with unchanged success toast (D-48). New `test/backfill.test.js` is pure (no HTTP); SC#3 idempotency tested in pure path; SC#5 enforced structurally by call ordering (D-50, D-51). 03-REVIEW WR-01 and WR-02 explicitly deferred — not Phase 4 scope.
 - **Plan 03-03 closures (2026-05-06):** D-31, D-32, D-33, D-34 implemented in lib/calc.js. buildGroceryView and decorateIngredients build the library index ONCE per render (D-33) with the D-34 defensive guard for missing/empty/non-array library; both view-builders attach libraryEntryId per item (null on no match) per D-31/D-32. routes/recipes.js threads state.library; views/recipe.njk reads ing.text. The 6 SC#5/D-31 authorized line edits at test/calc.test.js:237-241 + 257 evolve bare-string item assertions to { text, libraryEntryId: null } shape — the only allowed test-shape evolution per the user's 2026-05-06 authorization. Phase 3 closes MATCH-01, MATCH-02, MATCH-03; D-35, D-36, 02-REVIEW WR-01 closed; 02-REVIEW WR-04 partially closed.
 - **Plan 03-02 closures (2026-05-06):** D-26/D-27/D-28 implemented as a single guard (`match && typeof match.recipeCategory === 'string'`). Library 'Other' wins over heuristic. D-35 keyword fixes applied (RECIPE Veg trim + GROCERY Produce additions + GROCERY Aisle stale token removal per W-2). D-36 BLOCKER closed: `matchRawLibrary` calls module-local `normalizeIngredientText` so raw-library and pre-built-index paths are byte-equivalent. One Rule 1 deviation: added `'red pepper flakes'` (plural) to RECIPE Seasoning since the singular `'red pepper flake'` doesn't word-boundary-match the plural form.
 - **Phase 1 is atomic.** FND-01 + FND-02 + FND-03 + FND-04 ship in one commit. The pea heuristic bug fix, `aliasConflict` validator, and `libraryMigratedAt` flag are co-dependent. Any split requires a data-repair migration.
@@ -131,8 +132,8 @@ None.
 
 ## Session Continuity
 
-**To resume:** Read `ROADMAP.md` for phase goals and success criteria. Read `REQUIREMENTS.md` traceability table for current phase assignments. Phase 3 is COMPLETE — VERIFICATION.md (5/5 passed) at `.planning/phases/03-categorization-layering/03-VERIFICATION.md`. Phase 4 has no CONTEXT/PATTERNS yet — start with `/gsd-discuss-phase 4` then `/gsd-plan-phase 4`.
+**To resume:** Read `ROADMAP.md` for phase goals and success criteria. Read `.planning/phases/04-auto-extract-backfill/04-CONTEXT.md` for the locked Phase 4 implementation decisions (D-37..D-51). Phase 3 is COMPLETE — VERIFICATION.md (5/5 passed) at `.planning/phases/03-categorization-layering/03-VERIFICATION.md`.
 
-**Last session:** 2026-05-06 — completed Phase 3 end-to-end (12 plan commits + code review + verification). 246 → 284 tests, all passing. Phase goal verified: render-time library-first categorization with libraryEntryId on every grocery + recipe ingredient view item. Code review found 0 critical, 2 warning, 4 info — none block Phase 3 goal; tracked as todos.
+**Last session:** 2026-05-06 — gathered Phase 4 context (auto-extract & backfill). 6 gray areas discussed: backfill module shape (new lib/backfill.js), backfill failure recovery (skip + log + commit timestamp), POST extract failure (best-effort + success toast), backfill walk shape (per-recipe in insertion order), boot site (require.main block), defensive guard (Array.isArray + warn). 15 decisions locked. Committed as 46fa599.
 
-**Next action:** `/gsd-discuss-phase 4` — gather context for Phase 4 (Auto-Extract & Backfill) before planning. Then `/gsd-plan-phase 4` and `/gsd-execute-phase 4`.
+**Next action:** `/gsd-plan-phase 4` — create the executable plan(s). Then `/gsd-execute-phase 4`.
