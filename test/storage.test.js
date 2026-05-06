@@ -97,3 +97,56 @@ test('defaultState contains empty weeks and grocery arrays', () => {
   assert.deepStrictEqual(s.weeks, []);
   assert.deepStrictEqual(s.grocery, []);
 });
+
+test('defaultState contains an empty library array and null libraryMigratedAt', () => {
+  const s = storage.defaultState();
+  assert.deepStrictEqual(s.library, []);
+  assert.strictEqual(s.libraryMigratedAt, null);
+});
+
+test('migrate fills missing library and libraryMigratedAt onto an existing state', () => {
+  const m = storage.migrateForTest({ recipes: [], weeks: [], grocery: [] });
+  assert.deepStrictEqual(m.library, []);
+  assert.strictEqual(m.libraryMigratedAt, null);
+});
+
+test('migrate preserves an existing library array', () => {
+  const existing = {
+    library: [{ id: 'lb_abc12345', name: 'garlic', aliases: ['garlic'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: false, createdAt: '2026-05-05T00:00:00.000Z' }]
+  };
+  const m = storage.migrateForTest(existing);
+  assert.strictEqual(m.library.length, 1);
+  assert.strictEqual(m.library[0].name, 'garlic');
+});
+
+test('migrate coerces non-array library to []', () => {
+  const m = storage.migrateForTest({ library: 'nope' });
+  assert.deepStrictEqual(m.library, []);
+});
+
+test('migrate preserves an existing libraryMigratedAt ISO string', () => {
+  const existing = { libraryMigratedAt: '2026-05-05T12:34:56.000Z' };
+  const m = storage.migrateForTest(existing);
+  assert.strictEqual(m.libraryMigratedAt, '2026-05-05T12:34:56.000Z');
+});
+
+test('migrate coerces non-string libraryMigratedAt to null', () => {
+  assert.strictEqual(storage.migrateForTest({ libraryMigratedAt: 1234567890 }).libraryMigratedAt, null);
+  assert.strictEqual(storage.migrateForTest({ libraryMigratedAt: true }).libraryMigratedAt, null);
+  assert.strictEqual(storage.migrateForTest({ libraryMigratedAt: { foo: 'bar' } }).libraryMigratedAt, null);
+});
+
+test('migrate from pre-Phase-1 state (no library/libraryMigratedAt) preserves recipes/weeks/grocery', () => {
+  const preExisting = {
+    recipes: [{ id: 'r1', title: 'Soup', addedAt: '2026-04-01T00:00:00.000Z' }],
+    weeks: [{ weekStart: '2026-04-27', recipeIds: ['r1'], confirmed: true, modifiedAfterConfirm: false }],
+    grocery: [{ id: 'g_a', text: 'eggs', checked: false }]
+  };
+  const m = storage.migrateForTest(preExisting);
+  assert.strictEqual(m.recipes.length, 1);
+  assert.strictEqual(m.recipes[0].title, 'Soup');
+  assert.strictEqual(m.weeks.length, 1);
+  assert.strictEqual(m.grocery.length, 1);
+  assert.deepStrictEqual(m.library, []);
+  assert.strictEqual(m.libraryMigratedAt, null);
+});

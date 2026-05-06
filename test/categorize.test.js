@@ -49,9 +49,12 @@ test('recipeCategoryOf returns Other for unknown input', () => {
   assert.strictEqual(recipeCategoryOf(42), 'Other');
 });
 
-test('recipeCategoryOf handles plurals via prefix match', () => {
+test('recipeCategoryOf handles plurals via explicit keywords', () => {
   assert.strictEqual(recipeCategoryOf('2 tomatoes'), 'Veg');
   assert.strictEqual(recipeCategoryOf('3 onions'), 'Veg');
+  assert.strictEqual(recipeCategoryOf('1 cup mushrooms'), 'Veg');
+  assert.strictEqual(recipeCategoryOf('1 lb carrots'), 'Veg');
+  assert.strictEqual(recipeCategoryOf('1 cup peas'), 'Veg');
 });
 
 test('recipeCategoryOf prefers longer keyword (chicken broth -> Flavor not Protein)', () => {
@@ -126,4 +129,40 @@ test('groceryCategoryOf routes thyme to Produce (no Aisle dead-code conflict)', 
   assert.strictEqual(groceryCategoryOf('1 sprig fresh thyme'), 'Produce');
   assert.strictEqual(groceryCategoryOf('1 sprig fresh basil'), 'Produce');
   assert.strictEqual(groceryCategoryOf('1 sprig fresh rosemary'), 'Produce');
+});
+
+test('groceryCategoryOf("peanut butter") returns Aisle (pea-prefix bug fix — D-01, FND-04)', () => {
+  // Regression for the \b...\b regex fix. Before the fix, the keyword
+  // 'pea' (in GROCERY_KEYWORDS.Produce) prefix-matched 'peanut' so 'peanut butter'
+  // would route to Produce. After the fix, only 'peanut butter' (Aisle) wins.
+  assert.strictEqual(groceryCategoryOf('peanut butter'), 'Aisle');
+  assert.strictEqual(groceryCategoryOf('1 tbsp peanut butter'), 'Aisle');
+});
+
+test('recipeCategoryOf("peanut butter") does NOT classify as Veg (pea-prefix bug fix)', () => {
+  // Before the fix, 'pea' (in RECIPE_KEYWORDS.Veg) prefix-matched 'peanut'.
+  // After the fix, 'peanut butter' is not in RECIPE_KEYWORDS so it falls
+  // through to longer matches; 'peanut' is now an explicit Protein keyword.
+  const result = recipeCategoryOf('1 tbsp peanut butter');
+  assert.notStrictEqual(result, 'Veg');
+});
+
+test('recipeCategoryOf("peanuts") returns Protein (explicit plural keyword)', () => {
+  assert.strictEqual(recipeCategoryOf('1 cup peanuts'), 'Protein');
+  assert.strictEqual(recipeCategoryOf('2 tbsp chopped peanuts'), 'Protein');
+});
+
+test('recipeCategoryOf does not match prefix-only substrings (pea does not match peanut)', () => {
+  // Direct invariant: with bilateral \b\b, 'pea' should not match 'peanut'.
+  // 'peanuts' should hit the explicit 'peanuts' Protein keyword, not the 'pea' Veg keyword.
+  assert.strictEqual(recipeCategoryOf('peanut'), 'Protein');
+  assert.strictEqual(recipeCategoryOf('peanuts'), 'Protein');
+});
+
+test('groceryCategoryOf still classifies plurals correctly after \\b\\b fix', () => {
+  assert.strictEqual(groceryCategoryOf('2 lemons'), 'Produce');
+  assert.strictEqual(groceryCategoryOf('3 onions'), 'Produce');
+  assert.strictEqual(groceryCategoryOf('1 cup mushrooms'), 'Produce');
+  assert.strictEqual(groceryCategoryOf('1 can chickpeas'), 'Aisle');
+  assert.strictEqual(groceryCategoryOf('1 bag frozen peas'), 'Frozen');
 });
