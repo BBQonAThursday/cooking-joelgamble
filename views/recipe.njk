@@ -21,7 +21,7 @@
         {% for group in recipe.ingredientGroups %}
           <h3 class="ingredient-category">{{ group.category }}</h3>
           <ul>
-            {% for ing in group.items %}<li>{{ ing }}</li>{% endfor %}
+            {% for ing in group.items %}<li>{{ ing.text }}</li>{% endfor %}
           </ul>
         {% else %}
           <p class="empty">No ingredients found.</p>

@@ -61,7 +61,7 @@ router.get('/recipes/:id', (req, res) => {
     sourceDomain: sourceDomain(recipe.sourceUrl),
     totalTimeLabel: formatTotalTime(recipe.totalMinutes),
     isTagged,
-    ingredientGroups: decorateIngredients(recipe.ingredients)
+    ingredientGroups: decorateIngredients(recipe.ingredients, state.library)
   };
   res.render('recipe.njk', { recipe: decorated });
 });
