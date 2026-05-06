@@ -23,18 +23,18 @@ Ingredient categorization on the grocery list and recipe detail pages converges 
 - ✓ Manage a freeform grocery list with shopping-mode checkboxes and a "Got it" closed list — existing
 - ✓ Heuristic ingredient categorization via word-boundary keyword matching, longest-match-wins (`lib/categorize.js`) — existing
 - ✓ View past weeks' tagged recipes (read-only History tab) — existing
+- ✓ State extends with a new `state.library` collection of ingredient entries — `{ id, name, aliases[], recipeCategory, groceryCategory, curated, createdAt }` — *validated in Phase 1: Foundation*
+- ✓ Categorization at render time becomes layered: library aliases checked first (longest-match-wins), then existing heuristic keyword tables, then "Other" — *validated in Phase 3: Categorization Layering (MATCH-01, MATCH-02, MATCH-03)*
+- ✓ Library data shape designed for extension: future fields (nutrition info, allergens) can be added per entry without schema migration — *validated in Phase 1 + Phase 2 (entry shape locked at FND-03)*
 
 ### Active
 
 <!-- Current scope. Hypotheses until shipped. -->
 
-- [ ] State extends with a new `state.library` collection of ingredient entries — `{ id, name, aliases[], recipeCategory, groceryCategory, curated, createdAt }`
-- [ ] Auto-extract on recipe save: each ingredient string is checked against existing entries' aliases; unmatched strings create new entries with heuristic-guessed categories and `curated: false`
-- [ ] One-time backfill: existing saved recipes' ingredients are migrated into the library on first run after deploy
-- [ ] Categorization at render time becomes layered: library aliases checked first (longest-match-wins), then existing heuristic keyword tables, then "Other"
-- [ ] New top-level "Library" tab — browse all entries, filter by curated/uncurated, edit canonical name/aliases/categories, delete, manually add
-- [ ] Inline "Fix" shortcut on grocery items and recipe ingredient lines — opens a small editor for the matched library entry's categories (no recipe-string mutation)
-- [ ] Library data shape designed for extension: future fields (nutrition info, allergens) can be added per entry without schema migration
+- [ ] Auto-extract on recipe save: each ingredient string is checked against existing entries' aliases; unmatched strings create new entries with heuristic-guessed categories and `curated: false` — *Phase 4*
+- [ ] One-time backfill: existing saved recipes' ingredients are migrated into the library on first run after deploy — *Phase 4*
+- [ ] New top-level "Library" tab — browse all entries, filter by curated/uncurated, edit canonical name/aliases/categories, delete, manually add — *Phase 5*
+- [ ] Inline "Fix" shortcut on grocery items and recipe ingredient lines — opens a small editor for the matched library entry's categories (no recipe-string mutation) — *Phase 6*
 
 ### Out of Scope
 
@@ -48,6 +48,8 @@ Ingredient categorization on the grocery list and recipe detail pages converges 
 - **AI/LLM-based fuzzy matching** — keep the matching deterministic and fast. Library handles the curation; heuristic handles the long tail.
 
 ## Context
+
+**Current state (2026-05-06):** Phases 1, 2, 3 complete. State now carries `state.library[]` and `state.libraryMigratedAt` (Phase 1). `lib/library.js` exports the full helper set: `newLibraryId`, `newLibraryEntry`, `normalizeIngredientText` (re-exported from categorize), `findEntryByText` (now a wrapper), `buildLibraryIndex`, `findEntryInIndex`, `extractAndSeed`, `aliasConflict` (Phases 1+2+3-01). `lib/categorize.js` is now library-aware via an optional `libraryOrIndex` arg on `recipeCategoryOf`/`groceryCategoryOf`, with the canonical `normalizeIngredientText` source (Phase 3-02). `lib/calc.js#buildGroceryView` and `decorateIngredients` build the library index once per render and attach `libraryEntryId` (null when no match) to every item view (Phase 3-03). `routes/recipes.js` threads `state.library` to `decorateIngredients`; `views/recipe.njk` reads `ing.text`. 284/284 tests passing.
 
 **Brownfield project.** Recipe-box is an Express + Nunjucks + HTMX personal app on port 3003, intended for LAN-only Pi deployment. State lives in `data/state.json` with atomic temp-file rename. View-models in `lib/calc.js` decorate state for templates. The existing heuristic categorization (`lib/categorize.js`, added in commit `b5d5927` and prior) uses two independent keyword tables (recipe-side and grocery-side) with longest-match-wins. It works well for ~80% of common ingredients but produces predictable misses (e.g., "peanut butter" → Veg via the `pea` keyword; freshly added recipe formats with regional variations).
 
@@ -97,4 +99,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-06
+*Last updated: 2026-05-06 (after Phase 3 completion — categorization-layering shipped: MATCH-01/02/03 validated)*

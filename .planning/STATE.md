@@ -14,7 +14,7 @@ progress:
 
 # Project State — Ingredient Library
 
-**Last updated:** 2026-05-05
+**Last updated:** 2026-05-06
 **Milestone:** Ingredient Library
 
 ---
@@ -23,7 +23,7 @@ progress:
 
 **Core value:** Ingredient categorization on the grocery list and recipe detail pages converges toward accuracy as the user curates their library, replacing the brittle keyword-table heuristic with a personal source of truth.
 
-**Current focus:** Phase 2 — library-helpers
+**Current focus:** Phase 4 — auto-extract-backfill (next)
 
 ---
 
@@ -41,14 +41,14 @@ Plan: Phase 4 next
 **Progress:**
 
 ```
-Phase 1 [          ] 0%
-Phase 2 [          ] 0%
+Phase 1 [##########] 100%
+Phase 2 [##########] 100%
 Phase 3 [##########] 100%
 Phase 4 [          ] 0%
 Phase 5 [          ] 0%
 Phase 6 [          ] 0%
 
-Milestone [          ] 0%
+Milestone [#####     ] 50%
 ```
 
 ---
@@ -58,10 +58,14 @@ Milestone [          ] 0%
 | Metric | Value |
 |--------|-------|
 | Phases total | 6 |
-| Phases complete | 0 |
+| Phases complete | 3 |
 | Requirements mapped | 21 / 21 |
+| Requirements validated | 11 / 21 (FND-01..04, FND-03, EXTR-02, EXTR-04, MATCH-01, MATCH-02, MATCH-03) |
 | Plans written | 7 |
-| Plans complete | 6 |
+| Plans complete | 7 |
+| Phase 3 tests added | 38 (12 + 15 + 11) |
+| Phase 3 commits | 14 (12 plan commits + REVIEW + VERIFICATION) |
+| Test suite | 284/284 passing |
 | Plan 03-02 duration | ~12 min |
 | Plan 03-02 tasks | 2 |
 | Plan 03-02 files modified | 2 |
@@ -112,9 +116,10 @@ Milestone [          ] 0%
 
 ## Todos
 
-- [ ] Start Phase 1: write `test/storage.test.js` additions, then extend `lib/storage.js#migrate()` + `defaultState()`.
-- [ ] Verify pea-bug fix with existing `test/categorize.test.js` before any seeding runs.
-- [ ] Confirm backfill placement: server.js startup hook (synchronous, before `app.listen`).
+- [ ] Phase 4: hook `extractAndSeed(state, recipe.ingredients)` into `POST /recipes` after the existing `storage.save()`; second `storage.save()` only on `added > 0`.
+- [ ] Phase 4: server.js startup backfill — synchronous, runs once when `state.libraryMigratedAt === null`, persists timestamp on completion.
+- [ ] Phase 4: verify backfill idempotency — restart twice, library entry count must be identical.
+- [ ] Optional Phase 3 follow-up: address WR-01 (`lib/calc.js` off-list category crash) and WR-02 (`routes/recipes.js` malformed week record) from `03-REVIEW.md` — `/gsd-code-review 3 --fix` available.
 
 ---
 
@@ -126,8 +131,8 @@ None.
 
 ## Session Continuity
 
-**To resume:** Read `ROADMAP.md` for phase goals and success criteria. Read `REQUIREMENTS.md` traceability table for current phase assignments. Read `.planning/phases/01-foundation/01-CONTEXT.md` for locked Phase 1 implementation decisions. Check which phase's `Plans` section has been updated from `TBD` to know where planning left off.
+**To resume:** Read `ROADMAP.md` for phase goals and success criteria. Read `REQUIREMENTS.md` traceability table for current phase assignments. Phase 3 is COMPLETE — VERIFICATION.md (5/5 passed) at `.planning/phases/03-categorization-layering/03-VERIFICATION.md`. Phase 4 has no CONTEXT/PATTERNS yet — start with `/gsd-discuss-phase 4` then `/gsd-plan-phase 4`.
 
-**Last session:** 2026-05-06 — completed plan 03-03 (4 commits: 93b6bc8 feat lib/calc.js, 820d08a feat routes/views, 8789055 test +11, 18d79b4 test 6 SC#5/D-31 line edits). Phase 3 fully complete. Stopped at: end of plan 03-03 SUMMARY.
+**Last session:** 2026-05-06 — completed Phase 3 end-to-end (12 plan commits + code review + verification). 246 → 284 tests, all passing. Phase goal verified: render-time library-first categorization with libraryEntryId on every grocery + recipe ingredient view item. Code review found 0 critical, 2 warning, 4 info — none block Phase 3 goal; tracked as todos.
 
-**Next action:** Begin Phase 4 — Auto-Extract & Backfill (`POST /recipes` calls `extractAndSeed` after save; server-startup backfill runs once when `libraryMigratedAt` is null; idempotency verified).
+**Next action:** `/gsd-discuss-phase 4` — gather context for Phase 4 (Auto-Extract & Backfill) before planning. Then `/gsd-plan-phase 4` and `/gsd-execute-phase 4`.
