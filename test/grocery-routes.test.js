@@ -172,3 +172,54 @@ test('GET /grocery: special chars in item text are URL-encoded in pencil hx-get'
   // Nunjucks urlencode emits `%20` for spaces and `%26` for `&`.
   assert.match(res.body, /text=salt(%20|\+)%26(%20|\+)pepper/);
 });
+
+// ----- Phase 6 / FIX-04 invariants on grocery surface -----------------------
+// Templates always display ingredient.text (CLAUDE.md, REQUIREMENTS.md FIX-04).
+// Renaming a library entry's canonical name MUST NOT change the rendered
+// .grocery-text span -- canonical name lives only inside the Fix editor header.
+
+test('FIX-04 invariant: renaming library entry does NOT change grocery item text', async () => {
+  // Seed library entry whose alias matches the item text.
+  seedLibrary([makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'], recipeCategory: 'Veg', groceryCategory: 'Produce' })]);
+  const itemId = await addItem(ctx.port, 'apple');
+  assert.ok(itemId, 'item created');
+
+  // First GET -- confirms .grocery-text shows 'apple'.
+  const get1 = await helpers.request(ctx.port, { path: '/grocery' });
+  assert.match(get1.body, /<span class="grocery-text">apple<\/span>/);
+
+  // Rename the library entry's canonical name (simulating LIB-05 rename).
+  const state = storage.get();
+  state.library[0].name = 'pomme';
+  storage.save();
+
+  // Re-GET -- .grocery-text MUST still show 'apple' (not 'pomme'). FIX-04.
+  const get2 = await helpers.request(ctx.port, { path: '/grocery' });
+  assert.match(get2.body, /<span class="grocery-text">apple<\/span>/);
+  // 'pomme' may legitimately appear inside aria-label="Fix categorization for ..."
+  // (the aria-label uses item.text, not entry.name -- but defense in depth: the
+  // .grocery-text span MUST NOT contain canonical name).
+  const groceryTextMatches = get2.body.match(/<span class="grocery-text">[^<]+<\/span>/g) || [];
+  for (const span of groceryTextMatches) {
+    assert.ok(!span.includes('pomme'), `FIX-04 violation: span contains canonical name: ${span}`);
+  }
+});
+
+test('FIX-04 invariant: changing library categories does NOT change grocery item text', async () => {
+  seedLibrary([makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'], recipeCategory: 'Veg', groceryCategory: 'Produce' })]);
+  const itemId = await addItem(ctx.port, 'apple');
+
+  // POST new categories via the Save endpoint.
+  const post = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library/lb_apple01/categories',
+    headers: { 'hx-current-url': 'http://127.0.0.1:3003/grocery' },
+    body: { recipeCategory: 'Protein', groceryCategory: 'Meat', surfaceItemId: 'grocery-item-' + itemId, surface: 'grocery', itemId }
+  });
+  assert.strictEqual(post.status, 200);
+
+  const res = await helpers.request(ctx.port, { path: '/grocery' });
+  // Item text unchanged; bucket changed.
+  assert.match(res.body, /<span class="grocery-text">apple<\/span>/);
+  assert.match(res.body, /Meat[\s\S]*grocery-item-/);
+});

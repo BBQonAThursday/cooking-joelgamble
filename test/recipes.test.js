@@ -331,3 +331,57 @@ test('GET /recipes/:id rendering does not substitute entry.name even after renam
   // Sanity: shared icon partial included.
   assert.match(res.body, /viewBox="0 0 16 16"/);
 });
+
+// ----- Phase 6 / Wave 4: FIX-04 round-trip invariants -----------------------
+// These extend the static FIX-04 tests above with full round-trip flows:
+// 1. Save changes a library category -> recipe ingredient text MUST be unchanged.
+// 2. Rename happens AFTER an initial GET (simulating LIB-05 in-session rename) ->
+//    next GET MUST still render ing.text, not the new entry.name.
+
+test('FIX-04 round-trip: changing library category does NOT change recipe ingredient text', async () => {
+  seedLibraryAndRecipe(
+    makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'], recipeCategory: 'Veg', groceryCategory: 'Produce' }),
+    makeRecipe({ id: 'r_test01', ingredients: ['1 apple, sliced'] })
+  );
+
+  // POST new recipeCategory.
+  const post = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library/lb_apple01/categories',
+    headers: { 'hx-current-url': 'http://127.0.0.1:3003/recipes/r_test01' },
+    body: { recipeCategory: 'Protein', groceryCategory: 'Meat', surfaceItemId: 'recipe-r_test01-0', surface: 'recipe', recipeId: 'r_test01', index: '0' }
+  });
+  assert.strictEqual(post.status, 200);
+
+  // Re-GET -- text unchanged, group changed.
+  const res = await helpers.request(ctx.port, { path: '/recipes/r_test01' });
+  assert.match(res.body, /<span class="recipe-ingredient-text">1 apple, sliced<\/span>/);
+  assert.match(res.body, /class="ingredient-category">Protein<[\s\S]*1 apple, sliced/);
+});
+
+test('FIX-04 round-trip: renaming library entry across renders does NOT change recipe ingredient text', async () => {
+  seedLibraryAndRecipe(
+    makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'], recipeCategory: 'Veg', groceryCategory: 'Produce' }),
+    makeRecipe({ id: 'r_test01', ingredients: ['1 apple, sliced'] })
+  );
+
+  // First GET -- confirms current rendering.
+  const get1 = await helpers.request(ctx.port, { path: '/recipes/r_test01' });
+  assert.match(get1.body, /<span class="recipe-ingredient-text">1 apple, sliced<\/span>/);
+
+  // Rename library entry's canonical name (simulating LIB-05 rename via Library tab).
+  const storage = require('../lib/storage');
+  const state = storage.get();
+  state.library[0].name = 'pomme';
+  storage.save();
+
+  // Re-GET -- recipe-ingredient-text MUST still show '1 apple, sliced'. FIX-04.
+  const get2 = await helpers.request(ctx.port, { path: '/recipes/r_test01' });
+  assert.match(get2.body, /<span class="recipe-ingredient-text">1 apple, sliced<\/span>/);
+  // Defense in depth: 'pomme' may appear in aria-label attributes but MUST NOT
+  // appear inside any .recipe-ingredient-text span.
+  const ingTextMatches = get2.body.match(/<span class="recipe-ingredient-text">[^<]+<\/span>/g) || [];
+  for (const span of ingTextMatches) {
+    assert.ok(!span.includes('pomme'), `FIX-04 violation: span contains canonical name: ${span}`);
+  }
+});
