@@ -113,7 +113,7 @@ Plans:
 - [x] 05-01-PLAN.md — Wave 0 prerequisites: export renderSync from lib/render.js; create views/partials/library-footer.njk; add HTMX 4xx-swap meta-tag to layout.njk (NO nav tab yet); scaffold test/library-routes.test.js + test/calc.test.js buildLibraryView smoke
 
 **Wave 1** *(blocked on Wave 0)*
-- [ ] 05-02-PLAN.md — buildLibraryView in lib/calc.js (D-55/D-56/D-66); routes/library.js with GET /library mounted in server.js; views/library.njk + library-panel.njk + library-row.njk + library-* CSS; tests close LIB-02 + LIB-03
+- [x] 05-02-PLAN.md — buildLibraryView in lib/calc.js (D-55/D-56/D-66); routes/library.js with GET /library mounted in server.js; views/library.njk + library-panel.njk + library-row.njk + library-* CSS; tests close LIB-02 + LIB-03
 
 **Wave 2** *(blocked on Wave 1)*
 - [ ] 05-03-PLAN.md — GET /library/:id (read-only row fragment for Cancel) + GET /library/:id/edit (edit-form fragment) + POST /library (manual-add); views/partials/library-row-edit.njk; closes LIB-04
@@ -150,7 +150,7 @@ Plans:
 | 2. Library Helpers | 0/3 | Planned | - |
 | 3. Categorization Layering | 3/3 | Complete | 2026-05-06 |
 | 4. Auto-Extract & Backfill | 3/3 | Complete | 2026-05-07 |
-| 5. Library Tab | 1/6 | Executing | - |
+| 5. Library Tab | 2/6 | Executing | - |
 | 6. Inline Fix | 0/? | Not started | - |
 
 ---

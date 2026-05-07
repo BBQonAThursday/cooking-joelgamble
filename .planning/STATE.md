@@ -8,8 +8,8 @@ progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 16
-  completed_plans: 11
-  percent: 69
+  completed_plans: 12
+  percent: 75
 ---
 
 # Project State — Ingredient Library
@@ -30,12 +30,12 @@ progress:
 ## Current Position
 
 Phase: 05 (library-tab) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 | Field | Value |
 |-------|-------|
-| **Phase** | 5 — Library Tab — executing (1/6 plans complete) |
-| **Plan** | 05-01 complete (Wave 0 prerequisites: renderSync export, library-footer partial, htmx-config meta, test scaffolds). Next: 05-02 (buildLibraryView + GET /library). |
-| **Status** | All 6 phases mapped. Phases 1-4 complete (10/10 plans). 05-01 complete. 298/299 tests passing (1 intentional skip). |
+| **Phase** | 5 — Library Tab — executing (2/6 plans complete) |
+| **Plan** | 05-02 complete (buildLibraryView + GET /library + templates + CSS + 23 new tests). Next: 05-03 (manual-add POST /library, inline edit GET /library/:id/edit, GET /library/:id). |
+| **Status** | All 6 phases mapped. Phases 1-4 complete (10/10 plans). 05-01, 05-02 complete. 322/322 tests passing. |
 | **Blocking** | Nothing |
 
 **Progress:**
@@ -45,10 +45,10 @@ Phase 1 [##########] 100%
 Phase 2 [##########] 100%
 Phase 3 [##########] 100%
 Phase 4 [##########] 100%
-Phase 5 [#         ] 17%
+Phase 5 [##        ] 33%
 Phase 6 [          ] 0%
 
-Milestone [########  ] 69%
+Milestone [########  ] 75%
 ```
 
 ---
@@ -82,6 +82,7 @@ Milestone [########  ] 69%
 
 ### Key Decisions Locked In
 
+- **Plan 05-02 closures (2026-05-07):** buildLibraryView added to lib/calc.js — per-render recipe walk (D-66): buildLibraryIndex + findEntryInIndex + seen Set per recipe (prevents double-count). Alphabetical sort via localeCompare (D-55). Filter + search AND-combined (D-56). Entry decoration: aliasesDisplay, recipeCount, unused, deleteConfirm (singular/plural). unusedCount over full library (not filtered slice). routes/library.js created with GET /library; mounts in server.js after history route. Template hierarchy: library.njk -> library-panel.njk (#library-panel OOB target) -> library-row.njk (id=library-row-{{ entry.id }}). Debounced search hx-trigger=keyup changed delay:300ms; hx-include=[name='filter'] preserves filter state; hx-push-url=true (D-57/D-58). Two empty-state branches (D-59). CSS block library-* appended to styles.css. 322/322 tests passing (+13 unit buildLibraryView + +10 GET /library HTTP). LIB-02 + LIB-03 closed. No nav tab added (atomic-tab-launch invariant preserved).
 - **Plan 05-01 closures (2026-05-07):** Wave 0 prerequisites complete. renderSync added to lib/render.js module.exports (was already defined at line 14-17, just not exported). views/partials/library-footer.njk created with stable id="library-footer", unusedCount 0/1/plural branches, no hx-swap-oob (added at runtime by injectOob). views/layout.njk gains htmx-config meta tag: responseHandling with code:400 swap:true rule placed BEFORE [45].. catch-all (first-match wins); 400 omits error:true per D-61 silent-toast-on-conflict; no nav tab added (Wave 5 atomic-tab-launch invariant). test/library-routes.test.js scaffold created with beforeEach/afterEach, addLibraryEntry helper, and Wave 0 healthz smoke (1 pass). test/calc.test.js extended with buildLibraryView destructure and Phase 5 smoke test that skips when undefined (pending Plan 02). 298/299 tests passing (1 intentional skip).
 - **Phase 4 closures (2026-05-07):** Plan 04-01 lands `lib/backfill.js` with module-reference import (`const libraryMod = require('./library')`) — minor deviation from PATTERNS.md destructured snippet to make the D-41 monkey-patch test fire (mirrors the existing `scrapeMod` idiom). Plan 04-02 inserts 12 new lines in the `if (require.main === module)` block; `createApp()` byte-identical so test/_helpers.js's startTestServer continues seeing a backfill-free createApp (D-43/D-51). Plan 04-03 mirrors the same module-reference deviation in `routes/recipes.js`. End-to-end smoke confirmed SC#3 idempotency on the production code path: first boot logged "Backfilled 2 library entries from 1 recipes" and persisted ISO timestamp; second boot returned `alreadyRan: true`, library length + timestamp unchanged. EXTR-01 and EXTR-03 closed. 297/297 tests passing (284 prior + 13 new). Planning defect noted: 04-02 acceptance criterion `grep -c "runBackfill" server.js` should equal 1, but the snippet itself has 2 occurrences — followed the snippet.
 - **Phase 4 context (2026-05-06):** D-37..D-51 lock the auto-extract & backfill shape. Pure `lib/backfill.js` exporting `runBackfill(state) → { alreadyRan, added, aliasesAppended }` (D-37). Idempotency guard is `state.libraryMigratedAt` truthy (D-38). Per-recipe walk in `state.recipes` insertion order — matches live POST semantics, no flat-aggregate cross-recipe collapse (D-39). Defensive `Array.isArray(recipe.ingredients)` skip + console.warn (D-40); per-recipe try/catch + console.error + continue (D-41); `libraryMigratedAt` set unconditionally after the loop (partial backfill is committed). Bootstrap site is the `if (require.main === module)` block in `server.js` — `createApp()` stays backfill-free so `_helpers.startTestServer` keeps existing route tests isolated (D-43, D-44). POST /recipes adds a nested try/catch after the existing `storage.save()` at line 42; second save only on `result.added.length || result.aliasesAppended.length` (D-46, D-47); best-effort failure with unchanged success toast (D-48). New `test/backfill.test.js` is pure (no HTTP); SC#3 idempotency tested in pure path; SC#5 enforced structurally by call ordering (D-50, D-51). 03-REVIEW WR-01 and WR-02 explicitly deferred — not Phase 4 scope.
@@ -134,10 +135,10 @@ None.
 
 ## Session Continuity
 
-**To resume:** Read `ROADMAP.md` for phase goals. Phase 5 is EXECUTING — Plan 05-01 (Wave 0 prerequisites) complete. renderSync exported, library-footer partial created, HTMX 4xx-swap meta live, test scaffolds wired.
+**To resume:** Read `ROADMAP.md` for phase goals. Phase 5 is EXECUTING — Plans 05-01 and 05-02 complete. GET /library live; buildLibraryView in lib/calc.js; templates library.njk + library-panel.njk + library-row.njk; 322/322 tests passing.
 
-**Last session:** 2026-05-07T14:22:46.000Z
+**Last session:** 2026-05-07
 
-**Stopped at:** Completed 05-01-PLAN.md
+**Stopped at:** Completed 05-02-PLAN.md
 
-**Next action:** Execute `05-02-PLAN.md` — buildLibraryView in lib/calc.js, routes/library.js with GET /library, views/library.njk + library-panel.njk + library-row.njk.
+**Next action:** Execute `05-03-PLAN.md` — manual-add POST /library, GET /library/:id/edit inline form, GET /library/:id read-only row fragment, views/partials/library-row-edit.njk; closes LIB-04.
