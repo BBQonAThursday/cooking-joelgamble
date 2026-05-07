@@ -164,10 +164,10 @@ test('GET /library page contains htmx-config meta tag from layout.njk (Plan 01 p
   assert.match(res.body, /"code":"400","swap":true/);
 });
 
-test('GET /library page does not contain nav tab <a href="/library"> (atomic-tab-launch invariant)', async () => {
+test('GET /library page renders the Library nav tab with active class', async () => {
   const res = await helpers.request(ctx.port, { path: '/library' });
   assert.strictEqual(res.status, 200);
-  assert.doesNotMatch(res.body, /<a[^>]*href="\/library"[^>]*class="tab/);
+  assert.match(res.body, /<a[^>]*href="\/library"[^>]*class="tab[^"]* active/);
 });
 
 // Plan 03: GET /library/:id (read-only fragment) tests
@@ -585,6 +585,28 @@ test('DELETE /library/:id idempotency-of-delete (second call returns 404)', asyn
   });
   assert.strictEqual(res2.status, 404, 'second DELETE must return 404');
   assert.strictEqual(res2.body, 'Not found');
+});
+
+// Plan 06: LIB-01 final assertions (Library nav tab live on all pages)
+
+test('GET /grocery shows the Library nav tab as inactive (LIB-01 cross-page navigation)', async () => {
+  const res = await helpers.request(ctx.port, { path: '/grocery' });
+  assert.strictEqual(res.status, 200);
+  // Library link is present
+  assert.match(res.body, /<a[^>]*href="\/library"/);
+  // But it does NOT have the 'active' class on a non-library page.
+  const m = res.body.match(/<a[^>]*href="\/library"[^>]*>Library<\/a>/);
+  assert.ok(m, 'Library nav link should be present on /grocery');
+  assert.doesNotMatch(m[0], / class="[^"]*active[^"]*"/);
+});
+
+test('Library nav tab appears after History tab in nav order (LIB-01 placement)', async () => {
+  const res = await helpers.request(ctx.port, { path: '/library' });
+  assert.strictEqual(res.status, 200);
+  const historyIdx = res.body.indexOf('href="/history"');
+  const libraryIdx = res.body.indexOf('href="/library"');
+  assert.ok(historyIdx > -1, 'History link must be present');
+  assert.ok(libraryIdx > historyIdx, 'Library link must come after History in nav order');
 });
 
 module.exports = { addLibraryEntry };
