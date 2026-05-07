@@ -6,6 +6,19 @@
     {% if item.checked %}✓{% endif %}
   </button>
   <span class="grocery-text">{{ item.text }}</span>
+  {% if item.libraryEntryId %}
+    <button class="grocery-pencil"
+            hx-get="/library/{{ item.libraryEntryId }}/categories-edit?surface=grocery&itemId={{ item.id }}"
+            hx-target="closest li"
+            hx-swap="outerHTML"
+            aria-label="Fix categorization for {{ item.text }}">{% include "partials/icon-pencil.njk" %}</button>
+  {% else %}
+    <button class="grocery-pencil"
+            hx-get="/library/categorize-edit?text={{ item.text|urlencode }}&surface=grocery&itemId={{ item.id }}"
+            hx-target="closest li"
+            hx-swap="outerHTML"
+            aria-label="Categorize {{ item.text }}">{% include "partials/icon-pencil.njk" %}</button>
+  {% endif %}
   <button class="grocery-delete"
           hx-delete="/grocery/{{ item.id }}"
           hx-swap="none"
