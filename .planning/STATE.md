@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to execute
-last_updated: "2026-05-07T00:28:59.728Z"
+status: Phase 4 complete — ready for Phase 5
+last_updated: "2026-05-07T13:00:00.000Z"
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 10
-  completed_plans: 7
-  percent: 70
+  completed_plans: 10
+  percent: 80
 ---
 
 # Project State — Ingredient Library
 
-**Last updated:** 2026-05-06
+**Last updated:** 2026-05-07
 **Milestone:** Ingredient Library
 
 ---
@@ -23,19 +23,18 @@ progress:
 
 **Core value:** Ingredient categorization on the grocery list and recipe detail pages converges toward accuracy as the user curates their library, replacing the brittle keyword-table heuristic with a personal source of truth.
 
-**Current focus:** Phase 4 — auto-extract-backfill (context gathered, ready to plan)
+**Current focus:** Phase 5 — Library Tab (browse / filter / search / inline edit / delete / manual add)
 
 ---
 
 ## Current Position
 
-Phase: 4 CONTEXT GATHERED
-Plan: ready for /gsd-plan-phase 4
+Phase: 4 COMPLETE — proceed to Phase 5
 | Field | Value |
 |-------|-------|
-| **Phase** | 4 — Auto-Extract & Backfill — context complete |
-| **Plan** | 04-CONTEXT.md committed (46fa599). 15 decisions locked (D-37..D-51): pure lib/backfill.js, per-recipe walk in state.recipes order, bootstrap-only invocation in `require.main` block (preserves createApp test isolation), POST /recipes nested try/catch hook, best-effort failure policy with success toast, partial-backfill commits libraryMigratedAt unconditionally. |
-| **Status** | Phase 3 complete (284/284 passing). Phase 4 ready: 6 gray areas discussed, all answered with recommended options. |
+| **Phase** | 4 — Auto-Extract & Backfill — complete (3/3 plans, 5/5 SC verified) |
+| **Plan** | Phase 5 not yet planned. Next action: `/gsd-discuss-phase 5` then `/gsd-plan-phase 5`. |
+| **Status** | All 6 phases mapped. Phases 1-4 complete (10/10 plans). 297/297 tests passing. EXTR-01 + EXTR-03 closed. |
 | **Blocking** | Nothing |
 
 **Progress:**
@@ -44,11 +43,11 @@ Plan: ready for /gsd-plan-phase 4
 Phase 1 [##########] 100%
 Phase 2 [##########] 100%
 Phase 3 [##########] 100%
-Phase 4 [          ] 0%
+Phase 4 [##########] 100%
 Phase 5 [          ] 0%
 Phase 6 [          ] 0%
 
-Milestone [#####     ] 50%
+Milestone [#######   ] 67%
 ```
 
 ---
@@ -58,14 +57,14 @@ Milestone [#####     ] 50%
 | Metric | Value |
 |--------|-------|
 | Phases total | 6 |
-| Phases complete | 3 |
+| Phases complete | 4 |
 | Requirements mapped | 21 / 21 |
-| Requirements validated | 11 / 21 (FND-01..04, FND-03, EXTR-02, EXTR-04, MATCH-01, MATCH-02, MATCH-03) |
-| Plans written | 7 |
-| Plans complete | 7 |
-| Phase 3 tests added | 38 (12 + 15 + 11) |
-| Phase 3 commits | 14 (12 plan commits + REVIEW + VERIFICATION) |
-| Test suite | 284/284 passing |
+| Requirements validated | 13 / 21 (FND-01..04, EXTR-01, EXTR-02, EXTR-03, EXTR-04, MATCH-01, MATCH-02, MATCH-03) |
+| Plans written | 10 |
+| Plans complete | 10 |
+| Phase 4 tests added | 13 (10 backfill + 3 SC#1 in recipes.test.js) |
+| Phase 4 commits | 9 (3 RED + 3 GREEN + 3 SUMMARY) |
+| Test suite | 297/297 passing |
 | Plan 03-02 duration | ~12 min |
 | Plan 03-02 tasks | 2 |
 | Plan 03-02 files modified | 2 |
@@ -82,6 +81,7 @@ Milestone [#####     ] 50%
 
 ### Key Decisions Locked In
 
+- **Phase 4 closures (2026-05-07):** Plan 04-01 lands `lib/backfill.js` with module-reference import (`const libraryMod = require('./library')`) — minor deviation from PATTERNS.md destructured snippet to make the D-41 monkey-patch test fire (mirrors the existing `scrapeMod` idiom). Plan 04-02 inserts 12 new lines in the `if (require.main === module)` block; `createApp()` byte-identical so test/_helpers.js's startTestServer continues seeing a backfill-free createApp (D-43/D-51). Plan 04-03 mirrors the same module-reference deviation in `routes/recipes.js`. End-to-end smoke confirmed SC#3 idempotency on the production code path: first boot logged "Backfilled 2 library entries from 1 recipes" and persisted ISO timestamp; second boot returned `alreadyRan: true`, library length + timestamp unchanged. EXTR-01 and EXTR-03 closed. 297/297 tests passing (284 prior + 13 new). Planning defect noted: 04-02 acceptance criterion `grep -c "runBackfill" server.js` should equal 1, but the snippet itself has 2 occurrences — followed the snippet.
 - **Phase 4 context (2026-05-06):** D-37..D-51 lock the auto-extract & backfill shape. Pure `lib/backfill.js` exporting `runBackfill(state) → { alreadyRan, added, aliasesAppended }` (D-37). Idempotency guard is `state.libraryMigratedAt` truthy (D-38). Per-recipe walk in `state.recipes` insertion order — matches live POST semantics, no flat-aggregate cross-recipe collapse (D-39). Defensive `Array.isArray(recipe.ingredients)` skip + console.warn (D-40); per-recipe try/catch + console.error + continue (D-41); `libraryMigratedAt` set unconditionally after the loop (partial backfill is committed). Bootstrap site is the `if (require.main === module)` block in `server.js` — `createApp()` stays backfill-free so `_helpers.startTestServer` keeps existing route tests isolated (D-43, D-44). POST /recipes adds a nested try/catch after the existing `storage.save()` at line 42; second save only on `result.added.length || result.aliasesAppended.length` (D-46, D-47); best-effort failure with unchanged success toast (D-48). New `test/backfill.test.js` is pure (no HTTP); SC#3 idempotency tested in pure path; SC#5 enforced structurally by call ordering (D-50, D-51). 03-REVIEW WR-01 and WR-02 explicitly deferred — not Phase 4 scope.
 - **Plan 03-03 closures (2026-05-06):** D-31, D-32, D-33, D-34 implemented in lib/calc.js. buildGroceryView and decorateIngredients build the library index ONCE per render (D-33) with the D-34 defensive guard for missing/empty/non-array library; both view-builders attach libraryEntryId per item (null on no match) per D-31/D-32. routes/recipes.js threads state.library; views/recipe.njk reads ing.text. The 6 SC#5/D-31 authorized line edits at test/calc.test.js:237-241 + 257 evolve bare-string item assertions to { text, libraryEntryId: null } shape — the only allowed test-shape evolution per the user's 2026-05-06 authorization. Phase 3 closes MATCH-01, MATCH-02, MATCH-03; D-35, D-36, 02-REVIEW WR-01 closed; 02-REVIEW WR-04 partially closed.
 - **Plan 03-02 closures (2026-05-06):** D-26/D-27/D-28 implemented as a single guard (`match && typeof match.recipeCategory === 'string'`). Library 'Other' wins over heuristic. D-35 keyword fixes applied (RECIPE Veg trim + GROCERY Produce additions + GROCERY Aisle stale token removal per W-2). D-36 BLOCKER closed: `matchRawLibrary` calls module-local `normalizeIngredientText` so raw-library and pre-built-index paths are byte-equivalent. One Rule 1 deviation: added `'red pepper flakes'` (plural) to RECIPE Seasoning since the singular `'red pepper flake'` doesn't word-boundary-match the plural form.
@@ -117,9 +117,9 @@ Milestone [#####     ] 50%
 
 ## Todos
 
-- [ ] Phase 4: hook `extractAndSeed(state, recipe.ingredients)` into `POST /recipes` after the existing `storage.save()`; second `storage.save()` only on `added > 0`.
-- [ ] Phase 4: server.js startup backfill — synchronous, runs once when `state.libraryMigratedAt === null`, persists timestamp on completion.
-- [ ] Phase 4: verify backfill idempotency — restart twice, library entry count must be identical.
+- [x] Phase 4: hook `extractAndSeed(state, recipe.ingredients)` into `POST /recipes` after the existing `storage.save()`; second `storage.save()` only on `added > 0`. *(Plan 04-03, commit 2fac444.)*
+- [x] Phase 4: server.js startup backfill — synchronous, runs once when `state.libraryMigratedAt === null`, persists timestamp on completion. *(Plan 04-02, commit 69fbfbf.)*
+- [x] Phase 4: verify backfill idempotency — restart twice, library entry count must be identical. *(End-to-end smoke 2026-05-07 + SC#3 unit test in test/backfill.test.js.)*
 - [ ] Optional Phase 3 follow-up: address WR-01 (`lib/calc.js` off-list category crash) and WR-02 (`routes/recipes.js` malformed week record) from `03-REVIEW.md` — `/gsd-code-review 3 --fix` available.
 
 ---
@@ -132,8 +132,8 @@ None.
 
 ## Session Continuity
 
-**To resume:** Read `ROADMAP.md` for phase goals and success criteria. Read `.planning/phases/04-auto-extract-backfill/04-CONTEXT.md` for the locked Phase 4 implementation decisions (D-37..D-51). Phase 3 is COMPLETE — VERIFICATION.md (5/5 passed) at `.planning/phases/03-categorization-layering/03-VERIFICATION.md`.
+**To resume:** Read `ROADMAP.md` for phase goals. Phase 4 is COMPLETE — `.planning/phases/04-auto-extract-backfill/04-VERIFICATION.md` documents 5/5 SC verified. Library now self-populates on POST /recipes (EXTR-01 / Plan 04-03) and backfills pre-existing recipes once on startup (EXTR-03 / Plans 04-01 + 04-02).
 
-**Last session:** 2026-05-06 — gathered Phase 4 context (auto-extract & backfill). 6 gray areas discussed: backfill module shape (new lib/backfill.js), backfill failure recovery (skip + log + commit timestamp), POST extract failure (best-effort + success toast), backfill walk shape (per-recipe in insertion order), boot site (require.main block), defensive guard (Array.isArray + warn). 15 decisions locked. Committed as 46fa599.
+**Last session:** 2026-05-07 — executed Phase 4 in 2 waves. Wave 1: lib/backfill.js + 10 pure tests (Plan 04-01). Wave 2: server.js bootstrap + routes/recipes.js POST hook + 3 SC#1 tests (Plans 04-02, 04-03). End-to-end smoke confirmed idempotent boot/restart. 297/297 tests passing.
 
-**Next action:** `/gsd-plan-phase 4` — create the executable plan(s). Then `/gsd-execute-phase 4`.
+**Next action:** `/gsd-discuss-phase 5` then `/gsd-plan-phase 5` — Library tab UI (LIB-01..LIB-06: browse/filter/search/inline edit/delete/manual add).

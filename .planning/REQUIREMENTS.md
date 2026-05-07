@@ -22,9 +22,9 @@
 
 ### Auto-Extract (EXTR)
 
-- [ ] **EXTR-01**: `POST /recipes` handler calls `extractAndSeed(state, recipe.ingredients)` synchronously after the existing `storage.save()`. Triggers a second `storage.save()` only when new entries are appended.
+- [x] **EXTR-01**: `POST /recipes` handler calls `extractAndSeed(state, recipe.ingredients)` synchronously after the existing `storage.save()`. Triggers a second `storage.save()` only when new entries are appended. *(Closed by Plan 04-03 — commits 2835544, 2fac444.)*
 - [ ] **EXTR-02**: `extractAndSeed` normalizes each ingredient string (trim, lowercase, strip leading quantity/unit prefixes, drop trailing parentheticals) before checking for an existing alias match. New entries: `name = original_text`, `aliases = [normalized_text]`, categories = heuristic guess from the keyword tables, `curated: false`.
-- [ ] **EXTR-03**: Backfill runs on server startup (`server.js`) when `state.libraryMigratedAt` is `null`. Walks all existing recipes, calls `extractAndSeed` per recipe, sets `state.libraryMigratedAt = new Date().toISOString()`, persists once.
+- [x] **EXTR-03**: Backfill runs on server startup (`server.js`) when `state.libraryMigratedAt` is `null`. Walks all existing recipes, calls `extractAndSeed` per recipe, sets `state.libraryMigratedAt = new Date().toISOString()`, persists once. *(Closed by Plan 04-01 + Plan 04-02 — commits 24ab1b9, 72aaf4a, 69fbfbf.)*
 - [ ] **EXTR-04**: `aliasConflict(state, alias, excludingId?)` returns truthy when a normalized alias already exists in another entry. Auto-extract uses this to skip creating duplicates; route handlers use it to reject conflicting alias edits.
 
 ### Library Tab (LIB)

@@ -12,7 +12,7 @@
 - [ ] **Phase 1: Foundation** — Atomic state migration: `state.library[]`, `libraryMigratedAt` sentinel, `lib/library.js` skeleton with `aliasConflict` + `newLibraryId`, and heuristic pea-bug patch. Ships as one commit.
 - [ ] **Phase 2: Library Helpers** — Pure normalization and extraction helpers in `lib/library.js`: `normalizeIngredientText`, `findEntryByText`, `extractAndSeed`, `aliasConflict` fully implemented. Fully unit-tested with no HTTP.
 - [x] **Phase 3: Categorization Layering** — `lib/categorize.js` gains optional `library` param; `lib/calc.js` threads library through `decorateIngredients` and `buildGroceryView`; `findEntryByText` returns matched entry id for Fix shortcut.
-- [ ] **Phase 4: Auto-Extract & Backfill** — `POST /recipes` calls `extractAndSeed` after save; server-startup backfill runs once when `libraryMigratedAt` is null; idempotency verified.
+- [x] **Phase 4: Auto-Extract & Backfill** — `POST /recipes` calls `extractAndSeed` after save; server-startup backfill runs once when `libraryMigratedAt` is null; idempotency verified.
 - [ ] **Phase 5: Library Tab** — `GET/POST/PATCH/DELETE /library` routes, `buildLibraryView`, and all Library tab templates: browse, filter, search, inline edit, delete, manual add.
 - [ ] **Phase 6: Inline Fix** — Fix affordance on grocery items and recipe ingredient lines: inline category editor, OOB-swap on save, "Edit full entry" link, original ingredient text always preserved.
 
@@ -89,11 +89,11 @@ Plans:
 Plans:
 
 **Wave 1**
-- [ ] 04-01-PLAN.md — lib/backfill.js pure orchestrator (runBackfill) + test/backfill.test.js (10 pure tests covering SC#2/SC#3/SC#4 + D-40/D-41/edge cases).
+- [x] 04-01-PLAN.md — lib/backfill.js pure orchestrator (runBackfill) + test/backfill.test.js (10 pure tests covering SC#2/SC#3/SC#4 + D-40/D-41/edge cases).
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 04-02-PLAN.md — server.js bootstrap wiring inside require.main block (D-43/D-44/D-45 — call ordering proves SC#5; createApp stays backfill-free).
-- [ ] 04-03-PLAN.md — routes/recipes.js POST hook with nested try/catch (D-46/D-47/D-48/D-49) + test/recipes.test.js extension (3 SC#1 tests; D-51 carryover preserved).
+- [x] 04-02-PLAN.md — server.js bootstrap wiring inside require.main block (D-43/D-44/D-45 — call ordering proves SC#5; createApp stays backfill-free).
+- [x] 04-03-PLAN.md — routes/recipes.js POST hook with nested try/catch (D-46/D-47/D-48/D-49) + test/recipes.test.js extension (3 SC#1 tests; D-51 carryover preserved).
 
 ### Phase 5: Library Tab
 **Goal**: Users can browse, search, filter, edit, delete, and manually add library entries from a dedicated Library tab without leaving the app.
@@ -131,7 +131,7 @@ Plans:
 | 1. Foundation | 0/1 | Planned | - |
 | 2. Library Helpers | 0/3 | Planned | - |
 | 3. Categorization Layering | 3/3 | Complete | 2026-05-06 |
-| 4. Auto-Extract & Backfill | 0/3 | Planned | - |
+| 4. Auto-Extract & Backfill | 3/3 | Complete | 2026-05-07 |
 | 5. Library Tab | 0/? | Not started | - |
 | 6. Inline Fix | 0/? | Not started | - |
 
