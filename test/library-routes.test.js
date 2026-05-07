@@ -300,4 +300,165 @@ test('POST /library dedupes aliases on submit', async () => {
   assert.doesNotMatch(res.body, /a, a/);
 });
 
+// Plan 04: POST /library/:id (edit-save) tests
+
+// Success path 1: updates entry, returns read-only row + OOB footer.
+test('POST /library/:id updates the entry and OOB-swaps the footer', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const apple = newLibraryEntry({ name: 'apple', aliases: [], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: false });
+  const beef  = newLibraryEntry({ name: 'beef',  aliases: [],  recipeCategory: 'Protein', groceryCategory: 'Meat', curated: true });
+  seedLibrary([apple, beef]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: `/library/${apple.id}`,
+    body: { name: 'apple', aliases: 'apples, gala', recipeCategory: 'Veg', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 200);
+  // Body must be the read-only row (not the edit form) -- li tag with id, no <form
+  assert.match(res.body, new RegExp(`<li[^>]*id="library-row-${apple.id}"[^>]*class="library-row"`));
+  assert.doesNotMatch(res.body, /<form/);
+  // Body must contain the OOB footer
+  assert.match(res.body, /id="library-footer"/);
+  assert.match(res.body, /hx-swap-oob="true"/);
+  // Toast set
+  assert.strictEqual(res.headers['x-status-toast'], 'Saved entry');
+  // State reflects updated aliases
+  const after = await helpers.request(ctx.port, { path: '/library' });
+  assert.match(after.body, /apples, gala/);
+});
+
+// Success path 2: sets curated:true on a previously uncurated entry (LIB-05).
+test('POST /library/:id sets curated:true on a previously uncurated entry (LIB-05)', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const entry = newLibraryEntry({ name: 'carrot', aliases: [], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: false });
+  seedLibrary([entry]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: `/library/${entry.id}`,
+    body: { name: 'carrot', aliases: '', recipeCategory: 'Veg', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 200);
+  // Row should show [curated] not [uncurated]
+  assert.match(res.body, /\[curated\]/);
+  assert.doesNotMatch(res.body, /\[uncurated\]/);
+  // Verify state directly
+  const state = storage.get();
+  const saved = state.library.find(e => e.id === entry.id);
+  assert.strictEqual(saved.curated, true, 'curated must be true after save');
+});
+
+// Success path 3: no-op save with own alias does not trigger alias conflict.
+test('POST /library/:id no-op save (same alias) succeeds -- excludingId works', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const entry = newLibraryEntry({ name: 'garlic', aliases: ['garlic clove'], recipeCategory: 'Seasoning', groceryCategory: 'Produce', curated: true });
+  seedLibrary([entry]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: `/library/${entry.id}`,
+    body: { name: 'garlic', aliases: 'garlic clove', recipeCategory: 'Seasoning', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 200, 'Self-alias re-submit must succeed, not 400');
+});
+
+// 400 path 1: missing name returns edit-form with inline error, no toast.
+test('POST /library/:id 400s on missing name and returns edit-form fragment with inline error', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const entry = newLibraryEntry({ name: 'pear', aliases: [], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true });
+  seedLibrary([entry]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: `/library/${entry.id}`,
+    body: { name: '   ', aliases: 'x', recipeCategory: 'Veg', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body, /<form/);
+  assert.match(res.body, /library-alias-error/);
+  assert.match(res.body, /Name is required/);
+  // D-61: no toast on 400
+  assert.ok(!res.headers['x-status-toast'], 'No toast header on 400 (D-61)');
+});
+
+// 400 path 2: alias conflict preserves user-typed values in the re-rendered form.
+test('POST /library/:id 400s on alias conflict and preserves user-typed values', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const apple = newLibraryEntry({ name: 'apple', aliases: ['apples'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true });
+  const beef  = newLibraryEntry({ name: 'beef',  aliases: ['cow'],    recipeCategory: 'Protein', groceryCategory: 'Meat', curated: true });
+  seedLibrary([apple, beef]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: `/library/${beef.id}`,
+    body: { name: 'cattle', aliases: 'apples', recipeCategory: 'Protein', groceryCategory: 'Meat' }
+  });
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body, /<form/);
+  // Nunjucks autoescape: single quotes become &#39; in the HTML output
+  assert.match(res.body, /Alias (&#39;|')apples(&#39;|') is already used by (&#39;|')apple(&#39;|')\./);
+  // User-typed values preserved in the form
+  assert.match(res.body, /value="cattle"/);
+  assert.match(res.body, /value="apples"/);
+  assert.match(res.body, /<option value="Protein"\s*selected/);
+  // State unchanged: beef still has alias 'cow'
+  const after = await helpers.request(ctx.port, { path: '/library' });
+  assert.match(after.body, /cow/);
+});
+
+// 400 path 3: invalid recipeCategory.
+test('POST /library/:id 400s on invalid recipeCategory', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const entry = newLibraryEntry({ name: 'thing', aliases: [], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true });
+  seedLibrary([entry]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: `/library/${entry.id}`,
+    body: { name: 'thing', aliases: '', recipeCategory: 'Hax', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body, /<form/);
+  // Nunjucks autoescape: single quotes become &#39; in the HTML output
+  assert.match(res.body, /Invalid recipe category (&#39;|')Hax(&#39;|')\./);
+});
+
+// 400 path 4: invalid groceryCategory.
+test('POST /library/:id 400s on invalid groceryCategory', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const entry = newLibraryEntry({ name: 'stuff', aliases: [], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true });
+  seedLibrary([entry]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: `/library/${entry.id}`,
+    body: { name: 'stuff', aliases: '', recipeCategory: 'Veg', groceryCategory: 'Sky' }
+  });
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body, /<form/);
+  // Nunjucks autoescape: single quotes become &#39; in the HTML output
+  assert.match(res.body, /Invalid grocery category (&#39;|')Sky(&#39;|')\./);
+});
+
+// 404 path.
+test('POST /library/:id 404s for unknown id', async () => {
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library/lb_nope',
+    body: { name: 'whatever', aliases: '', recipeCategory: 'Veg', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 404);
+  assert.strictEqual(res.body, 'Not found');
+});
+
+// Alias deduplication.
+test('POST /library/:id dedupes aliases via Set', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const entry = newLibraryEntry({ name: 'fig', aliases: [], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true });
+  seedLibrary([entry]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: `/library/${entry.id}`,
+    body: { name: 'fig', aliases: 'a, a, b, b, ', recipeCategory: 'Veg', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 200);
+  // Saved row should show deduped aliases 'a, b'
+  assert.match(res.body, /a, b/);
+  assert.doesNotMatch(res.body, /a, a/);
+});
+
 module.exports = { addLibraryEntry };
