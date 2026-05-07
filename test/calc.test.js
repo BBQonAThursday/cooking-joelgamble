@@ -235,11 +235,12 @@ test('decorateIngredients groups ingredients by recipe category in canonical ord
   ];
   const groups = decorateIngredients(ingredients);
   assert.deepStrictEqual(groups.map(g => g.category), ['Protein', 'Veg', 'Seasoning', 'Flavor', 'Other']);
-  assert.deepStrictEqual(groups[0].items, [{ text: '500g chicken thighs', libraryEntryId: null }]);
-  assert.deepStrictEqual(groups[1].items, [{ text: '1 medium onion', libraryEntryId: null }]);
-  assert.deepStrictEqual(groups[2].items, [{ text: '1 tsp salt', libraryEntryId: null }]);
-  assert.deepStrictEqual(groups[3].items, [{ text: '2 tbsp olive oil', libraryEntryId: null }]);
-  assert.deepStrictEqual(groups[4].items, [{ text: 'something-uncategorized', libraryEntryId: null }]);
+  // 06-02: items now carry a cross-group flatIndex (render-order-stable).
+  assert.deepStrictEqual(groups[0].items, [{ text: '500g chicken thighs', libraryEntryId: null, flatIndex: 0 }]);
+  assert.deepStrictEqual(groups[1].items, [{ text: '1 medium onion', libraryEntryId: null, flatIndex: 1 }]);
+  assert.deepStrictEqual(groups[2].items, [{ text: '1 tsp salt', libraryEntryId: null, flatIndex: 2 }]);
+  assert.deepStrictEqual(groups[3].items, [{ text: '2 tbsp olive oil', libraryEntryId: null, flatIndex: 3 }]);
+  assert.deepStrictEqual(groups[4].items, [{ text: 'something-uncategorized', libraryEntryId: null, flatIndex: 4 }]);
 });
 
 test('decorateIngredients omits empty categories', () => {
@@ -255,7 +256,11 @@ test('decorateIngredients preserves item order within a group', () => {
     '1 tomato'
   ]);
   assert.strictEqual(groups.length, 1);
-  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: null }, { text: '1 carrot', libraryEntryId: null }, { text: '1 tomato', libraryEntryId: null }]);
+  assert.deepStrictEqual(groups[0].items, [
+    { text: '1 onion', libraryEntryId: null, flatIndex: 0 },
+    { text: '1 carrot', libraryEntryId: null, flatIndex: 1 },
+    { text: '1 tomato', libraryEntryId: null, flatIndex: 2 }
+  ]);
 });
 
 test('decorateIngredients tolerates empty/missing input', () => {
@@ -366,21 +371,21 @@ test('decorateIngredients D-31: items with library match are { text, libraryEntr
   const groups = decorateIngredients(['1 onion'], library);
   assert.strictEqual(groups.length, 1);
   assert.strictEqual(groups[0].category, 'Veg');
-  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: 'lb_aaaaaaaa' }]);
+  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: 'lb_aaaaaaaa', flatIndex: 0 }]);
 });
 
 test('decorateIngredients D-31: empty library produces { text, libraryEntryId: null } items', () => {
   const groups = decorateIngredients(['1 onion'], []);
   assert.strictEqual(groups.length, 1);
   assert.strictEqual(groups[0].category, 'Veg');
-  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: null }]);
+  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: null, flatIndex: 0 }]);
 });
 
 test('decorateIngredients D-31: undefined library is identical to single-arg call shape', () => {
   const groups1 = decorateIngredients(['1 onion'], undefined);
   const groups2 = decorateIngredients(['1 onion']);
   assert.deepStrictEqual(groups1, groups2);
-  assert.deepStrictEqual(groups1[0].items, [{ text: '1 onion', libraryEntryId: null }]);
+  assert.deepStrictEqual(groups1[0].items, [{ text: '1 onion', libraryEntryId: null, flatIndex: 0 }]);
 });
 
 test('decorateIngredients D-28 propagation: library Other category wins over heuristic Veg', () => {
@@ -392,7 +397,7 @@ test('decorateIngredients D-28 propagation: library Other category wins over heu
   ];
   const groups = decorateIngredients(['1 onion'], library);
   assert.strictEqual(groups[0].category, 'Other');
-  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: 'lb_aaaaaaaa' }]);
+  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: 'lb_aaaaaaaa', flatIndex: 0 }]);
 });
 
 test('decorateIngredients null contract on bad / non-string ingredient entries skips them', () => {
@@ -401,7 +406,9 @@ test('decorateIngredients null contract on bad / non-string ingredient entries s
   const groups = decorateIngredients(['', '   ', null, undefined, '1 onion'], []);
   assert.strictEqual(groups.length, 1);
   assert.strictEqual(groups[0].category, 'Veg');
-  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: null }]);
+  // Skipped (empty / null / non-string) entries do not consume a flatIndex slot;
+  // flatIndex counts only emitted items.
+  assert.deepStrictEqual(groups[0].items, [{ text: '1 onion', libraryEntryId: null, flatIndex: 0 }]);
 });
 
 test('decorateIngredients D-33: a single call with multiple ingredients shares one library index across items (per-render build invariant)', () => {
@@ -421,8 +428,8 @@ test('decorateIngredients D-33: a single call with multiple ingredients shares o
   assert.strictEqual(groups.length, 1);
   assert.strictEqual(groups[0].category, 'Veg');
   assert.deepStrictEqual(groups[0].items, [
-    { text: '1 onion', libraryEntryId: 'lb_aaaaaaaa' },
-    { text: '1 carrot', libraryEntryId: 'lb_bbbbbbbb' }
+    { text: '1 onion', libraryEntryId: 'lb_aaaaaaaa', flatIndex: 0 },
+    { text: '1 carrot', libraryEntryId: 'lb_bbbbbbbb', flatIndex: 1 }
   ]);
   // Calling decorateIngredients a SECOND time with the same library returns the
   // same shape -- if the implementation cached the index across calls (a bug),

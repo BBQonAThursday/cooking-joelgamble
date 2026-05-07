@@ -2,7 +2,7 @@
   <h3 class="ingredient-category">{{ group.category }}</h3>
   <ul>
     {% for ing in group.items %}
-      {% set index = loop.index0 %}
+      {% set index = ing.flatIndex %}
       {% include "partials/recipe-ingredient-line.njk" %}
     {% endfor %}
   </ul>

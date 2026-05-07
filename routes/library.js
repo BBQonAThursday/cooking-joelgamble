@@ -1,7 +1,7 @@
 const express = require('express');
 const storage = require('../lib/storage');
-const { buildLibraryView } = require('../lib/calc');
-const { RECIPE_CATEGORIES, GROCERY_CATEGORIES } = require('../lib/categorize');
+const { buildLibraryView, buildGroceryView, decorateIngredients } = require('../lib/calc');
+const { RECIPE_CATEGORIES, GROCERY_CATEGORIES, recipeCategoryOf, groceryCategoryOf, normalizeIngredientText } = require('../lib/categorize');
 const { aliasConflict, newLibraryEntry } = require('../lib/library');
 const { respondWithUpdates, renderSync, injectOob } = require('../lib/render');
 
@@ -28,6 +28,108 @@ function entryViewById(state, id) {
   const view = buildLibraryView(state);
   return view.entries.find(e => e.id === id);
 }
+
+// FIX-01 / D-75 / D-76: Categorize editor fragment for unmatched items.
+// Pre-fills name via normalizeIngredientText; dropdowns via heuristic categorizeOf.
+// MUST be registered before GET /library/:id (Express first-match) -- otherwise
+// the wildcard would capture :id == 'categorize-edit'.
+router.get('/library/categorize-edit', (req, res) => {
+  const text = typeof req.query.text === 'string' ? req.query.text : '';
+  const surface = typeof req.query.surface === 'string' ? req.query.surface : 'grocery';
+  const itemId = typeof req.query.itemId === 'string' ? req.query.itemId : '';
+  const recipeId = typeof req.query.recipeId === 'string' ? req.query.recipeId : '';
+  const index = typeof req.query.index === 'string' ? req.query.index : '';
+  // surfaceItemId mirrors the source row's outer id so HTMX outerHTML toggles
+  // back correctly (RESEARCH Pitfall 2). For grocery: grocery-item-{itemId}.
+  // For recipe: a stable composite the template treats as opaque:
+  // recipe-{recipeId}-{flatIndex}.
+  const surfaceItemId = surface === 'recipe'
+    ? `recipe-${recipeId}-${index}`
+    : `grocery-item-${itemId}`;
+  const prefilledName = normalizeIngredientText(text);
+  const prefilledRecipeCategory = recipeCategoryOf(text);
+  const prefilledGroceryCategory = groceryCategoryOf(text);
+  const html = renderSync(req, 'partials/library-categorize-editor.njk', {
+    surface, itemId, recipeId, index, surfaceItemId,
+    prefilledName, prefilledRecipeCategory, prefilledGroceryCategory,
+    RECIPE_CATEGORIES, GROCERY_CATEGORIES,
+    categorizeError: ''
+  });
+  res.type('html').send(html);
+});
+
+// FIX-01 / FIX-02: Cancel target. Re-renders the original surface row from
+// current state so the editor's outerHTML swap restores the pre-edit row.
+// MUST be registered before GET /library/:id (Express first-match).
+router.get('/library/cancel-fix', (req, res) => {
+  const surface = typeof req.query.surface === 'string' ? req.query.surface : '';
+  const itemId = typeof req.query.itemId === 'string' ? req.query.itemId : '';
+  const recipeId = typeof req.query.recipeId === 'string' ? req.query.recipeId : '';
+  const indexStr = typeof req.query.index === 'string' ? req.query.index : '';
+  const index = indexStr === '' ? -1 : parseInt(indexStr, 10);
+  const state = storage.get();
+  if (surface === 'grocery') {
+    const view = buildGroceryView(state);
+    // Find the item across categorizedGroups[].items and closedItems[].
+    let item;
+    for (const group of (view.categorizedGroups || [])) {
+      item = (group.items || []).find(i => i.id === itemId);
+      if (item) break;
+    }
+    if (!item) item = (view.closedItems || []).find(i => i.id === itemId);
+    if (!item) return res.status(404).type('text').send('Not found');
+    const html = renderSync(req, 'partials/grocery-item.njk', { item });
+    return res.type('html').send(html);
+  }
+  if (surface === 'recipe') {
+    const recipe = (state.recipes || []).find(r => r.id === recipeId);
+    if (!recipe) return res.status(404).type('text').send('Not found');
+    // The pencil's hx-get sends `index` = ing.flatIndex (cross-group flat
+    // index attached by decorateIngredients). Walk groups in template order
+    // and pick the matching ingredient.
+    const groups = decorateIngredients(recipe.ingredients, state.library);
+    let foundGroup, foundIng;
+    for (const group of groups) {
+      for (const ing of group.items) {
+        if (ing.flatIndex === index) {
+          foundGroup = group;
+          foundIng = ing;
+          break;
+        }
+      }
+      if (foundIng) break;
+    }
+    if (!foundIng) return res.status(404).type('text').send('Not found');
+    const html = renderSync(req, 'partials/recipe-ingredient-line.njk', {
+      recipe, group: foundGroup, ing: foundIng, index
+    });
+    return res.type('html').send(html);
+  }
+  return res.status(400).type('text').send('Unknown surface');
+});
+
+// FIX-01 / D-74: Categories-only Fix editor fragment for an existing entry.
+// Surface-relative outer id so the editor toggles back to the SOURCE row,
+// not a Library-tab row (RESEARCH Pitfall 2).
+router.get('/library/:id/categories-edit', (req, res) => {
+  const state = storage.get();
+  const entry = entryViewById(state, req.params.id);
+  if (!entry) return res.status(404).type('text').send('Not found');
+  const surface = typeof req.query.surface === 'string' ? req.query.surface : 'library';
+  const itemId = typeof req.query.itemId === 'string' ? req.query.itemId : '';
+  const recipeId = typeof req.query.recipeId === 'string' ? req.query.recipeId : '';
+  const index = typeof req.query.index === 'string' ? req.query.index : '';
+  const surfaceItemId = surface === 'recipe'
+    ? `recipe-${recipeId}-${index}`
+    : surface === 'library'
+      ? `library-${entry.id}`
+      : `grocery-item-${itemId}`;
+  const html = renderSync(req, 'partials/library-fix-editor.njk', {
+    entry, surface, itemId, recipeId, index, surfaceItemId,
+    RECIPE_CATEGORIES, GROCERY_CATEGORIES
+  });
+  res.type('html').send(html);
+});
 
 // LIB-05 / D-62: Cancel target -- returns ONLY the read-only row fragment.
 // HTMX outerHTML-swaps it into #library-row-:id, replacing the edit form.
