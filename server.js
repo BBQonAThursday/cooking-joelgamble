@@ -42,6 +42,18 @@ if (require.main === module) {
   const app = createApp();
   const HOST = process.env.HOST || '127.0.0.1';
   const PORT = parseInt(process.env.PORT, 10) || 3003;
+
+  // [PHASE 4 EXTR-03] Auto-extract & backfill: synchronous, before app.listen.
+  // SC#5 satisfied structurally: no listener bound until backfill completes (D-44).
+  const storage = require('./lib/storage');
+  const { runBackfill } = require('./lib/backfill');
+  const state = storage.get();
+  const result = runBackfill(state);
+  if (!result.alreadyRan) {
+    storage.save();
+    console.log(`Backfilled ${result.added.length} library entries from ${state.recipes.length} recipes`);
+  }
+
   app.listen(PORT, HOST, () => {
     console.log(`Recipe box running at http://${HOST}:${PORT}`);
   });
