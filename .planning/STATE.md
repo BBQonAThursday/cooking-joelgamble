@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to execute
-last_updated: "2026-05-07T14:12:26.366Z"
+status: Executing Phase 05
+last_updated: "2026-05-07T14:22:46.000Z"
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 16
-  completed_plans: 10
-  percent: 63
+  completed_plans: 11
+  percent: 69
 ---
 
 # Project State — Ingredient Library
@@ -23,18 +23,19 @@ progress:
 
 **Core value:** Ingredient categorization on the grocery list and recipe detail pages converges toward accuracy as the user curates their library, replacing the brittle keyword-table heuristic with a personal source of truth.
 
-**Current focus:** Phase 5 — Library Tab (browse / filter / search / inline edit / delete / manual add)
+**Current focus:** Phase 05 — library-tab
 
 ---
 
 ## Current Position
 
-Phase: 4 COMPLETE — proceed to Phase 5
+Phase: 05 (library-tab) — EXECUTING
+Plan: 2 of 6
 | Field | Value |
 |-------|-------|
-| **Phase** | 4 — Auto-Extract & Backfill — complete (3/3 plans, 5/5 SC verified) |
-| **Plan** | Phase 5 not yet planned. Next action: `/gsd-discuss-phase 5` then `/gsd-plan-phase 5`. |
-| **Status** | All 6 phases mapped. Phases 1-4 complete (10/10 plans). 297/297 tests passing. EXTR-01 + EXTR-03 closed. |
+| **Phase** | 5 — Library Tab — executing (1/6 plans complete) |
+| **Plan** | 05-01 complete (Wave 0 prerequisites: renderSync export, library-footer partial, htmx-config meta, test scaffolds). Next: 05-02 (buildLibraryView + GET /library). |
+| **Status** | All 6 phases mapped. Phases 1-4 complete (10/10 plans). 05-01 complete. 298/299 tests passing (1 intentional skip). |
 | **Blocking** | Nothing |
 
 **Progress:**
@@ -44,10 +45,10 @@ Phase 1 [##########] 100%
 Phase 2 [##########] 100%
 Phase 3 [##########] 100%
 Phase 4 [##########] 100%
-Phase 5 [          ] 0%
+Phase 5 [#         ] 17%
 Phase 6 [          ] 0%
 
-Milestone [#######   ] 67%
+Milestone [########  ] 69%
 ```
 
 ---
@@ -60,11 +61,11 @@ Milestone [#######   ] 67%
 | Phases complete | 4 |
 | Requirements mapped | 21 / 21 |
 | Requirements validated | 13 / 21 (FND-01..04, EXTR-01, EXTR-02, EXTR-03, EXTR-04, MATCH-01, MATCH-02, MATCH-03) |
-| Plans written | 10 |
-| Plans complete | 10 |
+| Plans written | 16 |
+| Plans complete | 11 |
 | Phase 4 tests added | 13 (10 backfill + 3 SC#1 in recipes.test.js) |
 | Phase 4 commits | 9 (3 RED + 3 GREEN + 3 SUMMARY) |
-| Test suite | 297/297 passing |
+| Test suite | 298/299 passing (1 intentional skip — buildLibraryView pending Plan 02) |
 | Plan 03-02 duration | ~12 min |
 | Plan 03-02 tasks | 2 |
 | Plan 03-02 files modified | 2 |
@@ -81,6 +82,7 @@ Milestone [#######   ] 67%
 
 ### Key Decisions Locked In
 
+- **Plan 05-01 closures (2026-05-07):** Wave 0 prerequisites complete. renderSync added to lib/render.js module.exports (was already defined at line 14-17, just not exported). views/partials/library-footer.njk created with stable id="library-footer", unusedCount 0/1/plural branches, no hx-swap-oob (added at runtime by injectOob). views/layout.njk gains htmx-config meta tag: responseHandling with code:400 swap:true rule placed BEFORE [45].. catch-all (first-match wins); 400 omits error:true per D-61 silent-toast-on-conflict; no nav tab added (Wave 5 atomic-tab-launch invariant). test/library-routes.test.js scaffold created with beforeEach/afterEach, addLibraryEntry helper, and Wave 0 healthz smoke (1 pass). test/calc.test.js extended with buildLibraryView destructure and Phase 5 smoke test that skips when undefined (pending Plan 02). 298/299 tests passing (1 intentional skip).
 - **Phase 4 closures (2026-05-07):** Plan 04-01 lands `lib/backfill.js` with module-reference import (`const libraryMod = require('./library')`) — minor deviation from PATTERNS.md destructured snippet to make the D-41 monkey-patch test fire (mirrors the existing `scrapeMod` idiom). Plan 04-02 inserts 12 new lines in the `if (require.main === module)` block; `createApp()` byte-identical so test/_helpers.js's startTestServer continues seeing a backfill-free createApp (D-43/D-51). Plan 04-03 mirrors the same module-reference deviation in `routes/recipes.js`. End-to-end smoke confirmed SC#3 idempotency on the production code path: first boot logged "Backfilled 2 library entries from 1 recipes" and persisted ISO timestamp; second boot returned `alreadyRan: true`, library length + timestamp unchanged. EXTR-01 and EXTR-03 closed. 297/297 tests passing (284 prior + 13 new). Planning defect noted: 04-02 acceptance criterion `grep -c "runBackfill" server.js` should equal 1, but the snippet itself has 2 occurrences — followed the snippet.
 - **Phase 4 context (2026-05-06):** D-37..D-51 lock the auto-extract & backfill shape. Pure `lib/backfill.js` exporting `runBackfill(state) → { alreadyRan, added, aliasesAppended }` (D-37). Idempotency guard is `state.libraryMigratedAt` truthy (D-38). Per-recipe walk in `state.recipes` insertion order — matches live POST semantics, no flat-aggregate cross-recipe collapse (D-39). Defensive `Array.isArray(recipe.ingredients)` skip + console.warn (D-40); per-recipe try/catch + console.error + continue (D-41); `libraryMigratedAt` set unconditionally after the loop (partial backfill is committed). Bootstrap site is the `if (require.main === module)` block in `server.js` — `createApp()` stays backfill-free so `_helpers.startTestServer` keeps existing route tests isolated (D-43, D-44). POST /recipes adds a nested try/catch after the existing `storage.save()` at line 42; second save only on `result.added.length || result.aliasesAppended.length` (D-46, D-47); best-effort failure with unchanged success toast (D-48). New `test/backfill.test.js` is pure (no HTTP); SC#3 idempotency tested in pure path; SC#5 enforced structurally by call ordering (D-50, D-51). 03-REVIEW WR-01 and WR-02 explicitly deferred — not Phase 4 scope.
 - **Plan 03-03 closures (2026-05-06):** D-31, D-32, D-33, D-34 implemented in lib/calc.js. buildGroceryView and decorateIngredients build the library index ONCE per render (D-33) with the D-34 defensive guard for missing/empty/non-array library; both view-builders attach libraryEntryId per item (null on no match) per D-31/D-32. routes/recipes.js threads state.library; views/recipe.njk reads ing.text. The 6 SC#5/D-31 authorized line edits at test/calc.test.js:237-241 + 257 evolve bare-string item assertions to { text, libraryEntryId: null } shape — the only allowed test-shape evolution per the user's 2026-05-06 authorization. Phase 3 closes MATCH-01, MATCH-02, MATCH-03; D-35, D-36, 02-REVIEW WR-01 closed; 02-REVIEW WR-04 partially closed.
@@ -132,8 +134,10 @@ None.
 
 ## Session Continuity
 
-**To resume:** Read `ROADMAP.md` for phase goals. Phase 4 is COMPLETE — `.planning/phases/04-auto-extract-backfill/04-VERIFICATION.md` documents 5/5 SC verified. Library now self-populates on POST /recipes (EXTR-01 / Plan 04-03) and backfills pre-existing recipes once on startup (EXTR-03 / Plans 04-01 + 04-02).
+**To resume:** Read `ROADMAP.md` for phase goals. Phase 5 is EXECUTING — Plan 05-01 (Wave 0 prerequisites) complete. renderSync exported, library-footer partial created, HTMX 4xx-swap meta live, test scaffolds wired.
 
-**Last session:** 2026-05-07T13:29:37.249Z
+**Last session:** 2026-05-07T14:22:46.000Z
 
-**Next action:** `/gsd-discuss-phase 5` then `/gsd-plan-phase 5` — Library tab UI (LIB-01..LIB-06: browse/filter/search/inline edit/delete/manual add).
+**Stopped at:** Completed 05-01-PLAN.md
+
+**Next action:** Execute `05-02-PLAN.md` — buildLibraryView in lib/calc.js, routes/library.js with GET /library, views/library.njk + library-panel.njk + library-row.njk.
