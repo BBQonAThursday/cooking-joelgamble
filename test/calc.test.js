@@ -436,3 +436,140 @@ test('decorateIngredients D-33: a single call with multiple ingredients shares o
 test('buildLibraryView is exported by lib/calc (Plan 02 lands implementation)', { skip: typeof buildLibraryView !== 'function' && 'pending Plan 02' }, () => {
   assert.strictEqual(typeof buildLibraryView, 'function');
 });
+
+// === Phase 5 buildLibraryView assertions (Plan 02) ===
+
+const fixture = () => ({
+  library: [
+    { id: 'lb_aaa', name: 'apple',    aliases: ['apples'],      recipeCategory: 'Veg',       groceryCategory: 'Produce', curated: true,  createdAt: '' },
+    { id: 'lb_bbb', name: 'beef',     aliases: ['ground beef'], recipeCategory: 'Protein',   groceryCategory: 'Meat',    curated: false, createdAt: '' },
+    { id: 'lb_ccc', name: 'cinnamon', aliases: [],              recipeCategory: 'Seasoning', groceryCategory: 'Aisle',   curated: true,  createdAt: '' }
+  ],
+  recipes: [
+    { id: 'r1', ingredients: ['apples', 'sugar'] },
+    { id: 'r2', ingredients: ['sliced apples'] }
+  ]
+});
+
+test('buildLibraryView empty state returns hasEntries:false, activeTab:library', () => {
+  const view = buildLibraryView({});
+  assert.strictEqual(view.entries.length, 0);
+  assert.strictEqual(view.hasEntries, false);
+  assert.strictEqual(view.unusedCount, 0);
+  assert.strictEqual(view.totalCount, 0);
+  assert.strictEqual(view.activeTab, 'library');
+});
+
+test('buildLibraryView sorts entries alphabetically by name', () => {
+  const state = {
+    library: [
+      { id: 'lb_z', name: 'zebra',  aliases: [], recipeCategory: 'Other', groceryCategory: 'Other', curated: true, createdAt: '' },
+      { id: 'lb_a', name: 'apple',  aliases: [], recipeCategory: 'Other', groceryCategory: 'Other', curated: true, createdAt: '' },
+      { id: 'lb_m', name: 'monkey', aliases: [], recipeCategory: 'Other', groceryCategory: 'Other', curated: true, createdAt: '' }
+    ],
+    recipes: []
+  };
+  const view = buildLibraryView(state);
+  assert.deepStrictEqual(view.entries.map(e => e.name), ['apple', 'monkey', 'zebra']);
+});
+
+test('buildLibraryView aliasesDisplay joins aliases with comma and space', () => {
+  const state = fixture();
+  const view = buildLibraryView(state);
+  const apple = view.entries.find(e => e.name === 'apple');
+  const cinnamon = view.entries.find(e => e.name === 'cinnamon');
+  assert.strictEqual(apple.aliasesDisplay, 'apples');
+  assert.strictEqual(cinnamon.aliasesDisplay, '');
+});
+
+test('buildLibraryView recipeCount counts recipes referencing each entry', () => {
+  const view = buildLibraryView(fixture());
+  const apple = view.entries.find(e => e.name === 'apple');
+  const beef = view.entries.find(e => e.name === 'beef');
+  const cinnamon = view.entries.find(e => e.name === 'cinnamon');
+  assert.strictEqual(apple.recipeCount, 2);
+  assert.strictEqual(beef.recipeCount, 0);
+  assert.strictEqual(cinnamon.recipeCount, 0);
+});
+
+test('buildLibraryView unused flag: apple.unused=false, beef.unused=true, cinnamon.unused=true', () => {
+  const view = buildLibraryView(fixture());
+  const apple = view.entries.find(e => e.name === 'apple');
+  const beef = view.entries.find(e => e.name === 'beef');
+  const cinnamon = view.entries.find(e => e.name === 'cinnamon');
+  assert.strictEqual(apple.unused, false);
+  assert.strictEqual(beef.unused, true);
+  assert.strictEqual(cinnamon.unused, true);
+  assert.strictEqual(view.unusedCount, 2);
+});
+
+test('buildLibraryView same recipe with two matching ingredients counts entry once (seen Set)', () => {
+  const state = {
+    library: [
+      { id: 'lb_aaa', name: 'apple', aliases: ['apples', 'sliced apples'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '' }
+    ],
+    recipes: [
+      { id: 'r1', ingredients: ['apples', 'sliced apples'] }
+    ]
+  };
+  const view = buildLibraryView(state);
+  assert.strictEqual(view.entries[0].recipeCount, 1);
+});
+
+test('buildLibraryView filter Uncurated returns only curated:false entries', () => {
+  const view = buildLibraryView(fixture(), { filter: 'Uncurated' });
+  assert.ok(view.entries.every(e => !e.curated));
+  assert.strictEqual(view.entries.length, 1);
+  assert.strictEqual(view.entries[0].name, 'beef');
+});
+
+test('buildLibraryView filter Unused returns only entries with recipeCount===0', () => {
+  const view = buildLibraryView(fixture(), { filter: 'Unused' });
+  assert.ok(view.entries.every(e => e.recipeCount === 0));
+  assert.strictEqual(view.entries.length, 2);
+});
+
+test('buildLibraryView search q matches name and aliases (case-insensitive)', () => {
+  const view = buildLibraryView(fixture(), { q: 'Apple' });
+  assert.strictEqual(view.entries.length, 1);
+  assert.strictEqual(view.entries[0].name, 'apple');
+});
+
+test('buildLibraryView AND combination: q + filter both must match', () => {
+  const view = buildLibraryView(fixture(), { q: 'apple', filter: 'Uncurated' });
+  assert.strictEqual(view.entries.length, 0); // apple is curated
+});
+
+test('buildLibraryView deleteConfirm: unused entry gets unused string; used entries get recipe count string', () => {
+  const view = buildLibraryView(fixture());
+  const apple = view.entries.find(e => e.name === 'apple');
+  const beef = view.entries.find(e => e.name === 'beef');
+  assert.ok(apple.deleteConfirm.includes('2 recipes.'), `expected "2 recipes." in: ${apple.deleteConfirm}`);
+  assert.ok(beef.deleteConfirm.includes('unused.'), `expected "unused." in: ${beef.deleteConfirm}`);
+
+  // Singular form: recipeCount===1 must say "1 recipe." not "1 recipes."
+  const state1 = {
+    library: [
+      { id: 'lb_aaa', name: 'apple', aliases: ['apples'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true, createdAt: '' }
+    ],
+    recipes: [
+      { id: 'r1', ingredients: ['apples'] }
+    ]
+  };
+  const v1 = buildLibraryView(state1);
+  assert.ok(v1.entries[0].deleteConfirm.includes('1 recipe.'), `expected "1 recipe." in: ${v1.entries[0].deleteConfirm}`);
+  assert.ok(!v1.entries[0].deleteConfirm.includes('1 recipes.'), `must NOT include "1 recipes." in: ${v1.entries[0].deleteConfirm}`);
+});
+
+test('buildLibraryView missing/non-array library returns empty entries', () => {
+  assert.strictEqual(buildLibraryView({ library: null }).entries.length, 0);
+  assert.strictEqual(buildLibraryView({ library: 'not-an-array' }).entries.length, 0);
+});
+
+test('buildLibraryView includes RECIPE_CATEGORIES and GROCERY_CATEGORIES in returned view', () => {
+  const view = buildLibraryView({});
+  assert.ok(Array.isArray(view.RECIPE_CATEGORIES));
+  assert.ok(view.RECIPE_CATEGORIES.includes('Protein'));
+  assert.ok(Array.isArray(view.GROCERY_CATEGORIES));
+  assert.ok(view.GROCERY_CATEGORIES.includes('Produce'));
+});
