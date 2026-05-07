@@ -57,6 +57,62 @@ router.get('/library/:id/edit', (req, res) => {
   res.type('html').send(html);
 });
 
+// LIB-04: Manual add. Form submission from views/library.njk top form.
+// On success: full panel re-render (D-67 Claude's Discretion) so the new entry
+// lands at its alphabetical position with no client-side positioning logic.
+router.post('/library', (req, res) => {
+  const body = req.body || {};
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const aliasesRaw = typeof body.aliases === 'string' ? body.aliases : '';
+  const recipeCategory = typeof body.recipeCategory === 'string' ? body.recipeCategory : '';
+  const groceryCategory = typeof body.groceryCategory === 'string' ? body.groceryCategory : '';
+
+  if (!name) {
+    return res.status(400).type('text').send('Name required');
+  }
+  if (!RECIPE_CATEGORIES.includes(recipeCategory)) {
+    return res.status(400).type('text').send('Invalid recipe category');
+  }
+  if (!GROCERY_CATEGORIES.includes(groceryCategory)) {
+    return res.status(400).type('text').send('Invalid grocery category');
+  }
+
+  // Parse aliases: split on comma, trim, drop empties, dedupe via Set (D-60).
+  const aliases = [...new Set(
+    aliasesRaw.split(',').map(a => a.trim()).filter(Boolean)
+  )];
+
+  // Validate aliases against state.library; reject if any alias collides.
+  const state = storage.get();
+  for (const alias of aliases) {
+    const conflict = aliasConflict(state, alias);
+    if (conflict) {
+      return res.status(400).type('text').send(
+        `Alias '${alias}' is already used by '${conflict.name}'`
+      );
+    }
+  }
+
+  // Construct entry. newLibraryEntry validates categories + dedupes aliases (a second
+  // dedupe is safe; it's idempotent). curated:true per LIB-04.
+  let entry;
+  try {
+    entry = newLibraryEntry({ name, aliases, recipeCategory, groceryCategory, curated: true });
+  } catch (err) {
+    return res.status(400).type('text').send(err.message);
+  }
+
+  if (!Array.isArray(state.library)) state.library = [];
+  state.library.push(entry);
+  storage.save();
+
+  setToast(res, 'Added entry');
+  respondWithUpdates(req, res, {
+    panels: ['partials/library-panel.njk'],
+    extra: buildLibraryView(state)
+  });
+});
+
 // Stubs for Plans 04/05 -- return 404 so tests can assert the routes are not yet wired.
 // router.post('/library/:id', ...)        <- Plan 04
 // router.delete('/library/:id', ...)      <- Plan 05
