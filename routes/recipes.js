@@ -4,6 +4,10 @@ const scrapeMod = require('../lib/scrape');
 const { idForUrl } = require('../lib/id');
 const { respondWithUpdates } = require('../lib/render');
 const { sourceDomain, formatTotalTime, decorateIngredients } = require('../lib/calc');
+// Module reference (not destructured) so test/recipes.test.js's D-48
+// monkey-patch (libraryMod.extractAndSeed = ...) takes effect — mirrors
+// the scrapeMod idiom used at line 3 of this file.
+const libraryMod = require('../lib/library');
 
 const router = express.Router();
 
@@ -40,6 +44,16 @@ router.post('/recipes', async (req, res, next) => {
       toastVerb = 'Saved';
     }
     storage.save();
+
+    // [PHASE 4 EXTR-01] Auto-extract: synchronous, best-effort (D-46/D-47/D-48).
+    try {
+      const extractResult = libraryMod.extractAndSeed(state, entry.ingredients);
+      if (extractResult.added.length || extractResult.aliasesAppended.length) {
+        storage.save();
+      }
+    } catch (err) {
+      console.error('[extract] failed for recipe', entry.id, err.message);
+    }
 
     setToast(res, `${toastVerb}: ${entry.title}`);
     respondWithUpdates(req, res, { panels: ['partials/recipes-panel.njk'] });
