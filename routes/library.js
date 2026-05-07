@@ -212,6 +212,37 @@ router.post('/library/:id', (req, res) => {
   res.type('html').send(rowHtml + '\n' + footerHtml);
 });
 
-// router.delete('/library/:id', ...)      <- Plan 05
+// LIB-06 / D-64..D-67: Delete entry. Removes from state.library; NEVER mutates state.recipes.
+// Success response: OOB footer fragment only (empty primary body).
+// HTMX outerHTML on #library-row-:id with an empty/OOB-only body removes the row element.
+// 404: plain text (existing convention).
+router.delete('/library/:id', (req, res) => {
+  const id = req.params.id;
+  const state = storage.get();
+  const library = Array.isArray(state.library) ? state.library : [];
+  const idx = library.findIndex(e => e.id === id);
+  if (idx === -1) return res.status(404).type('text').send('Not found');
+
+  // Remove the entry. CRITICAL invariant (LIB-06): do NOT touch state.recipes.
+  // Categorization for any recipe ingredient strings that previously matched
+  // this entry's aliases will fall back to the heuristic on the next render
+  // (lib/calc.js#decorateIngredients + buildGroceryView already handle missing
+  // library entries via the existing fallback path).
+  library.splice(idx, 1);
+  state.library = library;
+  storage.save();
+
+  // D-67: generic toast. Do NOT interpolate the deleted entry's name (HTTP header ASCII safety).
+  setToast(res, 'Removed entry');
+
+  // Compound response: OOB footer only (no primary row fragment).
+  // HTMX outerHTML on #library-row-:id replaces the element with whatever is in
+  // the primary (non-OOB) response body. Since the body contains only the OOB
+  // footer fragment (which HTMX extracts and swaps separately), the primary swap
+  // target sees an empty/invisible result and the row is removed from the DOM.
+  const updatedView = buildLibraryView(state);
+  const footerHtml = injectOob(renderSync(req, 'partials/library-footer.njk', updatedView));
+  res.type('html').send(footerHtml);
+});
 
 module.exports = router;
