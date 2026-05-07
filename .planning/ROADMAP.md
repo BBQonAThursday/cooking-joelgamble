@@ -85,7 +85,15 @@ Plans:
   3. Restarting the server a second time does not re-run the backfill — `state.library` entry count is identical before and after the second restart.
   4. After backfill, "peanut butter" entries in `state.library` have `groceryCategory: 'Aisle'` (not `'Produce'`) — the heuristic fix from Phase 1 is reflected in all seeded entries.
   5. Backfill completes synchronously before the server begins accepting requests — no partial-library state is served on the first request.
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+
+**Wave 1**
+- [ ] 04-01-PLAN.md — lib/backfill.js pure orchestrator (runBackfill) + test/backfill.test.js (10 pure tests covering SC#2/SC#3/SC#4 + D-40/D-41/edge cases).
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 04-02-PLAN.md — server.js bootstrap wiring inside require.main block (D-43/D-44/D-45 — call ordering proves SC#5; createApp stays backfill-free).
+- [ ] 04-03-PLAN.md — routes/recipes.js POST hook with nested try/catch (D-46/D-47/D-48/D-49) + test/recipes.test.js extension (3 SC#1 tests; D-51 carryover preserved).
 
 ### Phase 5: Library Tab
 **Goal**: Users can browse, search, filter, edit, delete, and manually add library entries from a dedicated Library tab without leaving the app.
@@ -123,7 +131,7 @@ Plans:
 | 1. Foundation | 0/1 | Planned | - |
 | 2. Library Helpers | 0/3 | Planned | - |
 | 3. Categorization Layering | 3/3 | Complete | 2026-05-06 |
-| 4. Auto-Extract & Backfill | 0/? | Not started | - |
+| 4. Auto-Extract & Backfill | 0/3 | Planned | - |
 | 5. Library Tab | 0/? | Not started | - |
 | 6. Inline Fix | 0/? | Not started | - |
 

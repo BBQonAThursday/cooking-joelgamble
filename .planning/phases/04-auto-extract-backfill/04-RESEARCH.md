@@ -768,7 +768,7 @@ This is brownfield wiring against an established codebase. No "old vs current" f
 
 **This table is empty:** Every factual claim in this research either reads from in-tree code (verified by `Read` tool against `lib/library.js`, `lib/storage.js`, `routes/recipes.js`, `server.js`, `test/_helpers.js`, `test/recipes.test.js`, `test/library.test.js`, `package.json`, `.planning/config.json`) or quotes a locked decision from `04-CONTEXT.md`. No user confirmation needed.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should the `console.log` Backfilled-N-from-M line be omitted when `result.added.length === 0` and `result.aliasesAppended.length === 0`?**
    - What we know: Discretion log says the log line happens "after `storage.save()` reports `Backfilled N library entries from M recipes`." The save is conditional on `!result.alreadyRan`.
