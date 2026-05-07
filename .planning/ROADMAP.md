@@ -122,7 +122,7 @@ Plans:
 - [x] 05-04-PLAN.md — POST /library/:id (edit save); compound row + OOB-footer response on 200; edit-form fragment with inline aliasError on 400 (D-61); curated:true forced on save; closes LIB-05
 
 **Wave 4** *(blocked on Wave 3)*
-- [ ] 05-05-PLAN.md — DELETE /library/:id; row-removal + OOB-footer compound response; explicit recipes-untouched regression test (LIB-06 invariant); closes LIB-06
+- [x] 05-05-PLAN.md — DELETE /library/:id; row-removal + OOB-footer compound response; explicit recipes-untouched regression test (LIB-06 invariant); closes LIB-06
 
 **Wave 5** *(blocked on Wave 4 — FINAL atomic-tab-launch)*
 - [ ] 05-06-PLAN.md — views/layout.njk: add <a href="/library">Library</a> nav link after History; invert the no-nav-tab regression test from Plan 02; closes LIB-01
