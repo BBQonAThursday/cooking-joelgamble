@@ -1,0 +1,26 @@
+<li id="library-row-{{ entry.id }}" class="library-row library-row-edit">
+  <form hx-post="/library/{{ entry.id }}"
+        hx-target="#library-row-{{ entry.id }}"
+        hx-swap="outerHTML"
+        class="library-edit-form">
+    <input type="text" name="name" value="{{ entry.name }}" required maxlength="200" autocomplete="off">
+    <div class="library-aliases-field">
+      <input type="text" name="aliases" value="{{ entry.aliasesDisplay }}" maxlength="1000" autocomplete="off">
+      {% if entry.aliasError %}
+        <div class="library-alias-error">{{ entry.aliasError }}</div>
+      {% endif %}
+    </div>
+    <select name="recipeCategory">
+      {% for cat in RECIPE_CATEGORIES %}<option value="{{ cat }}"{% if cat == entry.recipeCategory %} selected{% endif %}>{{ cat }}</option>{% endfor %}
+    </select>
+    <select name="groceryCategory">
+      {% for cat in GROCERY_CATEGORIES %}<option value="{{ cat }}"{% if cat == entry.groceryCategory %} selected{% endif %}>{{ cat }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="library-save">Save</button>
+    <button type="button"
+            class="library-cancel"
+            hx-get="/library/{{ entry.id }}"
+            hx-target="#library-row-{{ entry.id }}"
+            hx-swap="outerHTML">Cancel</button>
+  </form>
+</li>
