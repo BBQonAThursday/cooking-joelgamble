@@ -461,4 +461,130 @@ test('POST /library/:id dedupes aliases via Set', async () => {
   assert.doesNotMatch(res.body, /a, a/);
 });
 
+// Plan 05: DELETE /library/:id tests
+
+// Test 1: removes the entry from state.library
+test('DELETE /library/:id removes the entry and OOB-swaps the footer', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const apple = newLibraryEntry({ name: 'apple', aliases: [], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true });
+  const beef  = newLibraryEntry({ name: 'beef',  aliases: [], recipeCategory: 'Protein', groceryCategory: 'Meat', curated: true });
+  seedLibrary([apple, beef]);
+
+  const res = await helpers.request(ctx.port, {
+    method: 'DELETE',
+    path: `/library/${apple.id}`
+  });
+
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.headers['x-status-toast'], 'Removed entry');
+  // Response must contain the OOB footer
+  assert.match(res.body, /id="library-footer"/);
+  assert.match(res.body, /hx-swap-oob="true"/);
+  // The response body must NOT contain the deleted row id (no full-page leak)
+  assert.doesNotMatch(res.body, new RegExp(`id="library-row-${apple.id}"`));
+  // State: apple gone, beef remains
+  const state = storage.get();
+  assert.strictEqual(state.library.length, 1);
+  assert.strictEqual(state.library[0].id, beef.id);
+});
+
+// Test 2: LIB-06 regression — state.recipes MUST NOT be mutated
+test('DELETE /library/:id does NOT mutate state.recipes (LIB-06 regression)', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const apple = newLibraryEntry({ name: 'apple', aliases: ['apples', 'sliced apples'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true });
+  const beef  = newLibraryEntry({ name: 'beef',  aliases: [], recipeCategory: 'Protein', groceryCategory: 'Meat', curated: true });
+  seedLibrary([apple, beef]);
+  seedRecipes([
+    { id: 'r1', title: 'pie',  ingredients: ['apples', 'sugar'],        addedAt: '2026-05-01' },
+    { id: 'r2', title: 'tart', ingredients: ['sliced apples', 'butter'], addedAt: '2026-05-02' }
+  ]);
+
+  // Deep-copy snapshot of recipes BEFORE the delete
+  const snapshot = JSON.parse(JSON.stringify(storage.get().recipes));
+
+  const res = await helpers.request(ctx.port, {
+    method: 'DELETE',
+    path: `/library/${apple.id}`
+  });
+
+  assert.strictEqual(res.status, 200);
+
+  const after = storage.get();
+  // recipes array length unchanged
+  assert.strictEqual(after.recipes.length, snapshot.length, 'recipes.length must be unchanged');
+  // Each recipe's ingredients arrays must be identical
+  for (let i = 0; i < snapshot.length; i++) {
+    assert.deepStrictEqual(
+      after.recipes[i].ingredients,
+      snapshot[i].ingredients,
+      `recipes[${i}].ingredients must be unchanged after delete`
+    );
+  }
+  // Library correctly reduced by one
+  assert.strictEqual(after.library.length, 1);
+});
+
+// Test 3: 404 for unknown id
+test('DELETE /library/:id 404s for unknown id', async () => {
+  const res = await helpers.request(ctx.port, {
+    method: 'DELETE',
+    path: '/library/lb_nope'
+  });
+  assert.strictEqual(res.status, 404);
+  assert.strictEqual(res.body, 'Not found');
+  // State unchanged (empty library from beforeEach)
+  const state = storage.get();
+  assert.ok(!Array.isArray(state.library) || state.library.length === 0);
+});
+
+// Test 4: footer unusedCount pluralization — singular vs plural vs zero
+test('DELETE /library/:id updates the footer unusedCount (pluralization branches)', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const e1 = newLibraryEntry({ name: 'alpha',   aliases: [], recipeCategory: 'Other', groceryCategory: 'Other', curated: false });
+  const e2 = newLibraryEntry({ name: 'bravo',   aliases: [], recipeCategory: 'Other', groceryCategory: 'Other', curated: false });
+  const e3 = newLibraryEntry({ name: 'charlie', aliases: [], recipeCategory: 'Other', groceryCategory: 'Other', curated: false });
+  seedLibrary([e1, e2, e3]);
+  // No recipes seeded -- all 3 are unused (unusedCount starts at 3)
+
+  // Delete e1 -> unusedCount should be 2 (plural)
+  const res1 = await helpers.request(ctx.port, {
+    method: 'DELETE',
+    path: `/library/${e1.id}`
+  });
+  assert.strictEqual(res1.status, 200);
+  assert.match(res1.body, /id="library-footer"/);
+  assert.match(res1.body, /2 unused entries/);
+
+  // Delete e2 -> unusedCount should be 1 (singular)
+  const res2 = await helpers.request(ctx.port, {
+    method: 'DELETE',
+    path: `/library/${e2.id}`
+  });
+  assert.strictEqual(res2.status, 200);
+  assert.match(res2.body, /id="library-footer"/);
+  assert.match(res2.body, /1 unused entry/);
+});
+
+// Test 5: idempotency-of-delete — second DELETE returns 404
+test('DELETE /library/:id idempotency-of-delete (second call returns 404)', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const entry = newLibraryEntry({ name: 'dupe', aliases: [], recipeCategory: 'Other', groceryCategory: 'Other', curated: true });
+  seedLibrary([entry]);
+
+  // First DELETE: should succeed
+  const res1 = await helpers.request(ctx.port, {
+    method: 'DELETE',
+    path: `/library/${entry.id}`
+  });
+  assert.strictEqual(res1.status, 200, 'first DELETE must return 200');
+
+  // Second DELETE: entry already gone, must 404
+  const res2 = await helpers.request(ctx.port, {
+    method: 'DELETE',
+    path: `/library/${entry.id}`
+  });
+  assert.strictEqual(res2.status, 404, 'second DELETE must return 404');
+  assert.strictEqual(res2.body, 'Not found');
+});
+
 module.exports = { addLibraryEntry };
