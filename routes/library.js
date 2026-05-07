@@ -29,6 +29,41 @@ function entryViewById(state, id) {
   return view.entries.find(e => e.id === id);
 }
 
+// Phase 6 D-72/D-73: Save handlers pick one of three OOB shapes based on
+// HX-Current-URL. Returns true if a response was written; false if the caller
+// should handle the /library default branch itself.
+//   /grocery*           -> OOB-only <section id="grocery-list"> (empty primary).
+//   /recipes/:id        -> OOB-only <section id="recipe-ingredient-groups-{id}">.
+//   anything else       -> false; caller handles (e.g. row + footer for /library).
+// The /recipes branch uses a regex (NOT substring) so the recipes-INDEX page (/)
+// doesn't false-match (RESEARCH Pitfall 1) and so the recipeId is captured.
+function respondPerSurface(req, res, state) {
+  const currentUrl = req.headers['hx-current-url'] || '';
+  if (currentUrl.includes('/grocery')) {
+    const view = buildGroceryView(state);
+    const html = injectOob(renderSync(req, 'partials/grocery-list.njk', view));
+    res.type('html').send(html);
+    return true;
+  }
+  const recipeMatch = currentUrl.match(/^[^?#]*\/recipes\/([a-z0-9]+)/i);
+  if (recipeMatch) {
+    const recipeId = recipeMatch[1];
+    const recipe = (state.recipes || []).find(r => r.id === recipeId);
+    if (recipe) {
+      const ingredientGroups = decorateIngredients(recipe.ingredients, state.library);
+      const html = injectOob(renderSync(req, 'partials/recipe-ingredient-groups-oob.njk', {
+        recipe: { id: recipe.id, ingredientGroups }
+      }));
+      res.type('html').send(html);
+      return true;
+    }
+    // Stale HX-Current-URL pointing to a deleted recipe -- fall through to the
+    // /library default branch (caller). Don't 404 -- the entry mutation
+    // succeeded; failing to refresh a stale tab is recoverable.
+  }
+  return false;
+}
+
 // FIX-01 / D-75 / D-76: Categorize editor fragment for unmatched items.
 // Pre-fills name via normalizeIngredientText; dropdowns via heuristic categorizeOf.
 // MUST be registered before GET /library/:id (Express first-match) -- otherwise
@@ -159,56 +194,130 @@ router.get('/library/:id/edit', (req, res) => {
   res.type('html').send(html);
 });
 
-// LIB-04: Manual add. Form submission from views/library.njk top form.
-// On success: full panel re-render (D-67 Claude's Discretion) so the new entry
-// lands at its alphabetical position with no client-side positioning logic.
+// LIB-04 + Phase 6 D-75/D-77: Manual add (Library tab) AND Categorize submission
+// (inline editor on /grocery and /recipes/:id). Categorize mode is detected via
+// the hidden surfaceItemId field that the Categorize editor includes.
+//
+// In Categorize mode (D-77):
+//   - 400 paths re-render library-categorize-editor.njk with categorizeError
+//     slot, preserving typed values. Form stays open.
+//   - Name conflict: case-insensitive equality on entry.name OR aliasConflict
+//     against the typed name returns 400. Mirrors Phase 5 D-61 verbatim.
+//   - 200 path branches on HX-Current-URL via respondPerSurface (D-75).
+//
+// In Library tab mode (no surfaceItemId): existing Phase 5 contract preserved.
+//   - 400 paths return plain-text body (LIB-04).
+//   - 200 path: respondWithUpdates(library-panel) full re-render (D-67).
 router.post('/library', (req, res) => {
   const body = req.body || {};
   const name = typeof body.name === 'string' ? body.name.trim() : '';
   const aliasesRaw = typeof body.aliases === 'string' ? body.aliases : '';
   const recipeCategory = typeof body.recipeCategory === 'string' ? body.recipeCategory : '';
   const groceryCategory = typeof body.groceryCategory === 'string' ? body.groceryCategory : '';
+  // Categorize-mode hidden fields (Plan 02 editor).
+  const surfaceItemId = typeof body.surfaceItemId === 'string' ? body.surfaceItemId : '';
+  const surface = typeof body.surface === 'string' ? body.surface : '';
+  const itemId = typeof body.itemId === 'string' ? body.itemId : '';
+  const recipeId = typeof body.recipeId === 'string' ? body.recipeId : '';
+  const index = typeof body.index === 'string' ? body.index : '';
+  const isCategorizeMode = !!surfaceItemId;
+
+  // D-77: 400 helper -- re-renders library-categorize-editor.njk with the user's
+  // typed values + an inline error. Used ONLY in Categorize mode. NO setToast
+  // (D-78 silent-400; mirrors Phase 5 D-61).
+  function renderCategorizeError(errorMsg) {
+    const html = renderSync(req, 'partials/library-categorize-editor.njk', {
+      prefilledName: name,
+      prefilledRecipeCategory: recipeCategory,
+      prefilledGroceryCategory: groceryCategory,
+      surfaceItemId, surface, itemId, recipeId, index,
+      categorizeError: errorMsg,
+      RECIPE_CATEGORIES, GROCERY_CATEGORIES
+    });
+    return res.status(400).type('html').send(html);
+  }
 
   if (!name) {
-    return res.status(400).type('text').send('Name required');
+    return isCategorizeMode
+      ? renderCategorizeError('Name is required.')
+      : res.status(400).type('text').send('Name required');
   }
   if (!RECIPE_CATEGORIES.includes(recipeCategory)) {
-    return res.status(400).type('text').send('Invalid recipe category');
+    return isCategorizeMode
+      ? renderCategorizeError(`Invalid recipe category '${recipeCategory}'.`)
+      : res.status(400).type('text').send('Invalid recipe category');
   }
   if (!GROCERY_CATEGORIES.includes(groceryCategory)) {
-    return res.status(400).type('text').send('Invalid grocery category');
+    return isCategorizeMode
+      ? renderCategorizeError(`Invalid grocery category '${groceryCategory}'.`)
+      : res.status(400).type('text').send('Invalid grocery category');
   }
 
   // Parse aliases: split on comma, trim, drop empties, dedupe via Set (D-60).
+  // Categorize editor has no aliases input -> aliasesRaw is '' -> aliases = [].
   const aliases = [...new Set(
     aliasesRaw.split(',').map(a => a.trim()).filter(Boolean)
   )];
 
-  // Validate aliases against state.library; reject if any alias collides.
   const state = storage.get();
-  for (const alias of aliases) {
-    const conflict = aliasConflict(state, alias);
-    if (conflict) {
-      return res.status(400).type('text').send(
-        `Alias '${alias}' is already used by '${conflict.name}'`
+
+  // D-77: Categorize-mode name conflict. Case-insensitive equality on entry.name
+  // OR aliasConflict on the typed name. The Library tab's manual-add path
+  // (newLibraryEntry below) handles name uniqueness via createdAt/dedupe, but
+  // Categorize needs the explicit early-out so the inline error surfaces with
+  // the typed values preserved.
+  if (isCategorizeMode) {
+    const lcName = name.toLowerCase();
+    const conflictByName = (state.library || []).find(e =>
+      typeof e.name === 'string' && e.name.toLowerCase() === lcName
+    );
+    if (conflictByName) {
+      return renderCategorizeError(
+        `Name "${name}" is already used by entry "${conflictByName.name}". Open it in the Library tab.`
+      );
+    }
+    const conflictByAlias = aliasConflict(state, name);
+    if (conflictByAlias) {
+      return renderCategorizeError(
+        `Name "${name}" is already used by entry "${conflictByAlias.name}". Open it in the Library tab.`
       );
     }
   }
 
+  // Validate aliases against state.library; reject if any alias collides.
+  for (const alias of aliases) {
+    const conflict = aliasConflict(state, alias);
+    if (conflict) {
+      return isCategorizeMode
+        ? renderCategorizeError(`Alias "${alias}" is already used by "${conflict.name}".`)
+        : res.status(400).type('text').send(
+            `Alias '${alias}' is already used by '${conflict.name}'`
+          );
+    }
+  }
+
   // Construct entry. newLibraryEntry validates categories + dedupes aliases (a second
-  // dedupe is safe; it's idempotent). curated:true per LIB-04.
+  // dedupe is safe; it's idempotent). curated:true per LIB-04 / D-74.
   let entry;
   try {
     entry = newLibraryEntry({ name, aliases, recipeCategory, groceryCategory, curated: true });
   } catch (err) {
-    return res.status(400).type('text').send(err.message);
+    return isCategorizeMode
+      ? renderCategorizeError(err.message)
+      : res.status(400).type('text').send(err.message);
   }
 
   if (!Array.isArray(state.library)) state.library = [];
   state.library.push(entry);
   storage.save();
 
+  // D-78: success toast is the existing Phase 5 'Added entry' (verb-only ASCII).
   setToast(res, 'Added entry');
+
+  // D-75: Categorize success branches on HX-Current-URL. /grocery and
+  // /recipes/:id surfaces get OOB-only responses; /library (or no header)
+  // keeps the existing Phase 5 respondWithUpdates(library-panel) shape.
+  if (respondPerSurface(req, res, state)) return;
   respondWithUpdates(req, res, {
     panels: ['partials/library-panel.njk'],
     extra: buildLibraryView(state)
@@ -309,6 +418,73 @@ router.post('/library/:id', (req, res) => {
     entry: updatedEntry,
     RECIPE_CATEGORIES,
     GROCERY_CATEGORIES
+  });
+  const footerHtml = injectOob(renderSync(req, 'partials/library-footer.njk', updatedView));
+  res.type('html').send(rowHtml + '\n' + footerHtml);
+});
+
+// FIX-01 / D-74: Categories-only Save. Distinct from POST /library/:id which
+// accepts the full form (name + aliases + categories). This endpoint NEVER
+// touches name/aliases. Validates each category against the enum, sets
+// curated:true on the entry, persists, and returns a per-surface OOB fragment
+// driven by HX-Current-URL (D-72/D-73). 400 returns the Fix editor fragment
+// re-rendered (no toast per D-78). 404 returns plain text.
+router.post('/library/:id/categories', (req, res) => {
+  const id = req.params.id;
+  const state = storage.get();
+  const library = Array.isArray(state.library) ? state.library : [];
+  const idx = library.findIndex(e => e.id === id);
+  if (idx === -1) return res.status(404).type('text').send('Not found');
+
+  const existing = library[idx];
+  const body = req.body || {};
+  const recipeCategory = typeof body.recipeCategory === 'string' ? body.recipeCategory : '';
+  const groceryCategory = typeof body.groceryCategory === 'string' ? body.groceryCategory : '';
+  // Hidden surface fields the editor round-trips so a 400 re-render targets the
+  // correct surface row (matches the editor's outer DOM id).
+  const surface = typeof body.surface === 'string' ? body.surface : 'library';
+  const itemId = typeof body.itemId === 'string' ? body.itemId : '';
+  const recipeId = typeof body.recipeId === 'string' ? body.recipeId : '';
+  const index = typeof body.index === 'string' ? body.index : '';
+  const surfaceItemId = typeof body.surfaceItemId === 'string' && body.surfaceItemId
+    ? body.surfaceItemId
+    : `library-${id}`;
+
+  // 400 helper: re-render Fix editor fragment with a synthetic entry view that
+  // preserves the user's typed values. NO setToast (D-78 silent-400).
+  function renderFixEditorError() {
+    const formEntry = {
+      id, name: existing.name, recipeCategory, groceryCategory
+    };
+    const html = renderSync(req, 'partials/library-fix-editor.njk', {
+      entry: formEntry,
+      surface, itemId, recipeId, index, surfaceItemId,
+      RECIPE_CATEGORIES, GROCERY_CATEGORIES
+    });
+    return res.status(400).type('html').send(html);
+  }
+
+  if (!RECIPE_CATEGORIES.includes(recipeCategory)) return renderFixEditorError();
+  if (!GROCERY_CATEGORIES.includes(groceryCategory)) return renderFixEditorError();
+
+  // Mutate. ELS spread preserves name/aliases/createdAt and any future fields.
+  // curated:true per D-74 -- saving categories asserts user has reviewed.
+  library[idx] = { ...existing, recipeCategory, groceryCategory, curated: true };
+  state.library = library;
+  storage.save();
+
+  // D-78: verb-only ASCII toast.
+  setToast(res, 'Saved categories');
+
+  // D-72/D-73: per-surface OOB shape.
+  if (respondPerSurface(req, res, state)) return;
+
+  // Default branch (HX-Current-URL is /library or absent): row fragment +
+  // OOB-footer fragment, mirroring Phase 5 D-63.
+  const updatedView = buildLibraryView(state);
+  const updatedEntry = updatedView.entries.find(e => e.id === id);
+  const rowHtml = renderSync(req, 'partials/library-row.njk', {
+    entry: updatedEntry, RECIPE_CATEGORIES, GROCERY_CATEGORIES
   });
   const footerHtml = injectOob(renderSync(req, 'partials/library-footer.njk', updatedView));
   res.type('html').send(rowHtml + '\n' + footerHtml);
