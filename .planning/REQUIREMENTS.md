@@ -38,10 +38,10 @@
 
 ### Inline Fix (FIX)
 
-- [ ] **FIX-01**: Each grocery item row has a "Fix" affordance. Clicking opens a small inline editor for the matched library entry's two categories (recipe + grocery dropdowns). Saving updates the entry, sets `curated: true`, and OOB-swaps the affected grocery list to reflect the new categorization. Items not currently matching a library entry get a "Categorize" affordance that creates a new entry seeded with the item's text.
-- [ ] **FIX-02**: Each recipe-page ingredient line has the same "Fix" affordance with the same behavior. OOB-swaps the affected recipe-detail page sections.
-- [ ] **FIX-03**: The Fix editor edits **categories only** — canonical name and aliases require navigating to the Library tab. A "Edit full entry" link in the Fix editor navigates to the entry on the Library tab.
-- [ ] **FIX-04**: The Fix affordance never displays the canonical name in place of the original recipe ingredient text. Recipe pages always show `ingredient.text` (PITFALLS.md guidance — confined canonical name to the Fix editor header).
+- [x] **FIX-01**: Each grocery item row has a "Fix" affordance. Clicking opens a small inline editor for the matched library entry's two categories (recipe + grocery dropdowns). Saving updates the entry, sets `curated: true`, and OOB-swaps the affected grocery list to reflect the new categorization. Items not currently matching a library entry get a "Categorize" affordance that creates a new entry seeded with the item's text. *(Phase 6, 2026-05-07; D-76 alt #2 alias-on-Categorize deferred)*
+- [x] **FIX-02**: Each recipe-page ingredient line has the same "Fix" affordance with the same behavior. OOB-swaps the affected recipe-detail page sections. *(Phase 6, 2026-05-07)*
+- [x] **FIX-03**: The Fix editor edits **categories only** — canonical name and aliases require navigating to the Library tab. A "Edit full entry" link in the Fix editor navigates to the entry on the Library tab. *(Phase 6, 2026-05-07)*
+- [x] **FIX-04**: The Fix affordance never displays the canonical name in place of the original recipe ingredient text. Recipe pages always show `ingredient.text` (PITFALLS.md guidance — confined canonical name to the Fix editor header). *(Phase 6, 2026-05-07)*
 
 ---
 

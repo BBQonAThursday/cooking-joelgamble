@@ -14,7 +14,7 @@
 - [x] **Phase 3: Categorization Layering** — `lib/categorize.js` gains optional `library` param; `lib/calc.js` threads library through `decorateIngredients` and `buildGroceryView`; `findEntryByText` returns matched entry id for Fix shortcut.
 - [x] **Phase 4: Auto-Extract & Backfill** — `POST /recipes` calls `extractAndSeed` after save; server-startup backfill runs once when `libraryMigratedAt` is null; idempotency verified.
 - [ ] **Phase 5: Library Tab** — `GET/POST/PATCH/DELETE /library` routes, `buildLibraryView`, and all Library tab templates: browse, filter, search, inline edit, delete, manual add.
-- [ ] **Phase 6: Inline Fix** — Fix affordance on grocery items and recipe ingredient lines: inline category editor, OOB-swap on save, "Edit full entry" link, original ingredient text always preserved.
+- [x] **Phase 6: Inline Fix** — Fix affordance on grocery items and recipe ingredient lines: inline category editor, OOB-swap on save, "Edit full entry" link, original ingredient text always preserved. *(complete 2026-05-07)*
 
 ---
 
@@ -141,17 +141,17 @@ Plans:
 Plans:
 
 **Wave 1**
-- [ ] 06-01-PLAN.md — Surface scaffolding: icon-pencil partial + recipe-ingredient-line + recipe-ingredient-groups partials + grocery-item.njk pencil button + recipe.njk extension + presence tests
+- [x] 06-01-PLAN.md — Surface scaffolding: icon-pencil partial + recipe-ingredient-line + recipe-ingredient-groups partials + grocery-item.njk pencil button + recipe.njk extension + presence tests
 
 **Wave 2** *(blocked on Wave 1)*
-- [ ] 06-02-PLAN.md — 3 GET routes (/library/:id/categories-edit, /library/categorize-edit, /library/cancel-fix) + 2 new editor partials (library-fix-editor.njk, library-categorize-editor.njk) + decorateIngredients flatIndex extension + GET tests
-- [ ] 06-03-PLAN.md — CSS additions (~140 lines) for pencil button + editor containers + responsive editor stack
+- [x] 06-02-PLAN.md — 3 GET routes (/library/:id/categories-edit, /library/categorize-edit, /library/cancel-fix) + 2 new editor partials (library-fix-editor.njk, library-categorize-editor.njk) + decorateIngredients flatIndex extension + GET tests
+- [x] 06-03-PLAN.md — CSS additions (~140 lines) for pencil button + editor containers + responsive editor stack
 
 **Wave 3** *(blocked on Wave 2 — sequential routes/library.js edits)*
-- [ ] 06-04-PLAN.md — POST /library/:id/categories Save endpoint (HX-Current-URL OOB routing) + extend POST /library Categorize-mode branch + recipe-ingredient-groups-oob.njk wrapper + POST tests
+- [x] 06-04-PLAN.md — POST /library/:id/categories Save endpoint (HX-Current-URL OOB routing) + extend POST /library Categorize-mode branch + recipe-ingredient-groups-oob.njk wrapper + POST tests
 
 **Wave 4** *(blocked on Wave 3)*
-- [ ] 06-05-PLAN.md — Round-trip integration tests + FIX-04 invariant tests (rename library entry; grocery + recipe text unchanged)
+- [x] 06-05-PLAN.md — Round-trip integration tests + FIX-04 invariant tests (rename library entry; grocery + recipe text unchanged)
 
 **UI hint**: yes
 
@@ -166,7 +166,7 @@ Plans:
 | 3. Categorization Layering | 3/3 | Complete | 2026-05-06 |
 | 4. Auto-Extract & Backfill | 3/3 | Complete | 2026-05-07 |
 | 5. Library Tab | 6/6 | Complete | 2026-05-07 |
-| 6. Inline Fix | 0/5 | Planned | - |
+| 6. Inline Fix | 5/5 | Complete | 2026-05-07 |
 
 ---
 

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to execute
-stopped_at: Phase 6 UI-SPEC approved
-last_updated: "2026-05-07T17:12:06.363Z"
+status: Milestone complete
+stopped_at: Phase 6 verified human_needed → user accepted
+last_updated: "2026-05-07T18:45:00.000Z"
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 21
-  completed_plans: 16
-  percent: 76
+  completed_plans: 21
+  percent: 100
 ---
 
 # Project State — Ingredient Library
@@ -24,19 +24,19 @@ progress:
 
 **Core value:** Ingredient categorization on the grocery list and recipe detail pages converges toward accuracy as the user curates their library, replacing the brittle keyword-table heuristic with a personal source of truth.
 
-**Current focus:** Phase 06 — Inline Fix
+**Current focus:** Milestone complete — awaiting next-milestone direction
 
 ---
 
 ## Current Position
 
-Phase: 6
-Plan: Not started
+Phase: 6 — COMPLETE
+Plan: All 5 plans shipped
 | Field | Value |
 |-------|-------|
-| **Phase** | 5 — Library Tab — COMPLETE (6/6 plans complete) |
-| **Plan** | 05-06 complete (Library nav tab live, LIB-01 closed). Phase 5 DONE. Next: Phase 6 (Inline Fix / FIX-01..FIX-04). |
-| **Status** | All 6 phases mapped. Phases 1-5 complete (16/16 plans). 349/349 tests passing. All 6 LIB requirements closed (LIB-01..LIB-06). |
+| **Phase** | 6 — Inline Fix — COMPLETE (5/5 plans complete; user-accepted human_needed verification) |
+| **Plan** | 06-05 complete (round-trip integration tests + FIX-04 invariants). Phase 6 DONE. All 21 plans across 6 phases shipped. |
+| **Status** | All 6 phases complete (21/21 plans). 401/401 tests passing. All 21 requirements closed (FND-01..04, EXTR-01..04, MATCH-01..03, LIB-01..06, FIX-01..04). One deferred enhancement: D-76 alt #2 (auto-add item text as alias on Categorize) — tracked in 06-CONTEXT.md and 06-VERIFICATION.md. |
 | **Blocking** | Nothing |
 
 **Progress:**
@@ -47,9 +47,9 @@ Phase 2 [##########] 100%
 Phase 3 [##########] 100%
 Phase 4 [##########] 100%
 Phase 5 [##########] 100%
-Phase 6 [          ] 0%
+Phase 6 [##########] 100%
 
-Milestone [##########] 94%
+Milestone [##########] 100%
 ```
 
 ---
@@ -59,11 +59,14 @@ Milestone [##########] 94%
 | Metric | Value |
 |--------|-------|
 | Phases total | 6 |
-| Phases complete | 4 |
+| Phases complete | 6 |
 | Requirements mapped | 21 / 21 |
-| Requirements validated | 13 / 21 (FND-01..04, EXTR-01, EXTR-02, EXTR-03, EXTR-04, MATCH-01, MATCH-02, MATCH-03) |
-| Plans written | 16 |
-| Plans complete | 13 |
+| Requirements validated | 21 / 21 (FND-01..04, EXTR-01..04, MATCH-01..03, LIB-01..06, FIX-01..04) |
+| Plans written | 21 |
+| Plans complete | 21 |
+| Phase 6 tests added | 52 (11 + 19 + 0 + 13 + 9 across 06-01..06-05) |
+| Phase 6 commits | 16 (3 + 4 + 2 + 3 + 3 + 1 verification) |
+| Test suite | 401 / 401 passing |
 | Phase 4 tests added | 13 (10 backfill + 3 SC#1 in recipes.test.js) |
 | Phase 4 commits | 9 (3 RED + 3 GREEN + 3 SUMMARY) |
 | Test suite | 333/333 passing |
@@ -91,6 +94,7 @@ Milestone [##########] 94%
 
 ### Key Decisions Locked In
 
+- **Phase 6 closures (2026-05-07):** Inline Fix affordance shipped end-to-end across 5 plans / 16 commits / +52 tests (349 → 401 passing). Pencil button on every grocery row + every recipe ingredient line, sharing one `icon-pencil.njk` SVG (D-69). Three new GET routes wire the editors; one new POST `/library/:id/categories` saves with surface-aware OOB shapes via `respondPerSurface` keyed off `HX-Current-URL` (D-72/D-73). Existing `POST /library` extended with a Categorize-mode branch (detected by hidden `surfaceItemId`). FIX-04 invariant locked in `recipe-ingredient-line.njk` line 2 (`{{ ing.text }}`, never `entry.name`) — verified by rename round-trip tests on both grocery and recipe surfaces. **Deviation:** recipe-id regex broadened from `[a-z0-9]+` to `[^/?#]+` so test fixtures with underscore-bearing ids match (06-04 SUMMARY); verifier confirmed no shadowing bug. **Deferred enhancement:** D-76 alt #2 (auto-add item text as alias on Categorize) — production Categorize editor has no aliases input by D-76 design, so a freshly-created Categorize entry doesn't auto-match the original item on next render. User accepted this gap; tracked in 06-CONTEXT.md and 06-VERIFICATION.md for a possible later milestone. Verifier returned `human_needed` (5/5 SCs literally satisfied; 4 human-eyeball items in 06-HUMAN-UAT.md: pencil visual quality, keyboard nav, mobile tap targets, and the Categorize-convergence intent decision). FIX-01..04 all closed.
 - **Plan 05-06 closures (2026-05-07):** Library nav tab landed in views/layout.njk (1 line insert after History tab). Tab order: Recipes | This Week | Grocery | History | Library (5th position per LIB-01 / REQUIREMENTS.md). Active class fires when activeTab=='library' (already plumbed by buildLibraryView in Plan 02). Atomic-tab-launch invariant fully respected -- nav link added ONLY in this final wave. Regression test (no-nav-tab doesNotMatch) inverted to assert presence + active class. 2 new LIB-01 tests: cross-page inactive state (/grocery) + placement after History. 349/349 tests passing (+2 new tests). Phase 5 COMPLETE. LIB-01..LIB-06 all closed.
 - **Plan 05-05 closures (2026-05-07):** DELETE /library/:id removes entry, OOB-swaps footer, verb-only toast 'Removed entry'. state.recipes untouched (LIB-06 regression invariant). Compound response: injectOob(footer) only -- empty primary body removes row via HTMX outerHTML. 5 new tests. 347/347 passing. LIB-06 closed.
 - **Plan 05-04 closures (2026-05-07):** POST /library/:id save endpoint closed LIB-05. 200 path: compound row+OOB-footer via renderSync+injectOob (NOT respondWithUpdates -- avoids hx-swap-oob on row). 400 path: edit-form fragment with user-typed values preserved + inline aliasError; no toast (D-61). 404 path: plain text. aliasConflict called with excludingId so self-alias re-submit does not false-positive. curated:true forced via ELS spread on every save. setToast('Saved entry') only on 200 (D-67). 9 new HTTP tests; total 342/342 passing. Deviation: test regex patterns use (&#39;|') alternation because Nunjucks autoescape converts single quotes to &#39; in rendered HTML.
@@ -148,10 +152,10 @@ None.
 
 ## Session Continuity
 
-**To resume:** Read `ROADMAP.md` for phase goals. Phase 5 is COMPLETE — all 6 plans done (05-01..05-06). 349/349 tests passing. All LIB-01..LIB-06 requirements closed. Next: Phase 6 (Inline Fix / FIX-01..FIX-04).
+**To resume:** Milestone v1.0 (Ingredient Library) is COMPLETE. All 6 phases / 21 plans shipped. 401/401 tests passing. All 21 requirements closed (FND-01..04, EXTR-01..04, MATCH-01..03, LIB-01..06, FIX-01..04). One deferred enhancement on the runway: D-76 alt #2 (auto-add item text as alias on Categorize) — see 06-VERIFICATION.md.
 
-**Last session:** 2026-05-07T15:45:57.543Z
+**Last session:** 2026-05-07T18:45:00.000Z
 
-**Stopped at:** Phase 6 UI-SPEC approved
+**Stopped at:** Phase 6 verified human_needed → user accepted; ROADMAP/STATE updated; milestone complete
 
-**Next action:** Execute Phase 6 — Inline Fix affordance on grocery items and recipe ingredient lines.
+**Next action:** Decide next milestone OR open a 6.1 polish phase to land D-76 alt #2 + address any 06-HUMAN-UAT findings.
