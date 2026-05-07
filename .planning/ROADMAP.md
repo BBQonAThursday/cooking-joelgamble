@@ -106,8 +106,26 @@ Plans:
   4. "Delete" removes an entry and OOB-swaps it out of the list; a warning is shown before deletion noting how many recipes reference that entry's aliases; `state.recipes` is not mutated.
   5. The "Add entry" form at the top of the panel creates a new entry with `curated: true`; the new row appears at the top of the list; the unused-entry footer count updates.
   6. Rows marked as unused (no current recipe references any alias) display an "Unused" badge; a footer shows the total count of unused entries.
-**Plans**: TBD
-**UI hint**: yes
+**Plans:** 6 plans
+Plans:
+
+**Wave 0**
+- [ ] 05-01-PLAN.md — Wave 0 prerequisites: export renderSync from lib/render.js; create views/partials/library-footer.njk; add HTMX 4xx-swap meta-tag to layout.njk (NO nav tab yet); scaffold test/library-routes.test.js + test/calc.test.js buildLibraryView smoke
+
+**Wave 1** *(blocked on Wave 0)*
+- [ ] 05-02-PLAN.md — buildLibraryView in lib/calc.js (D-55/D-56/D-66); routes/library.js with GET /library mounted in server.js; views/library.njk + library-panel.njk + library-row.njk + library-* CSS; tests close LIB-02 + LIB-03
+
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 05-03-PLAN.md — GET /library/:id (read-only row fragment for Cancel) + GET /library/:id/edit (edit-form fragment) + POST /library (manual-add); views/partials/library-row-edit.njk; closes LIB-04
+
+**Wave 3** *(blocked on Wave 2)*
+- [ ] 05-04-PLAN.md — POST /library/:id (edit save); compound row + OOB-footer response on 200; edit-form fragment with inline aliasError on 400 (D-61); curated:true forced on save; closes LIB-05
+
+**Wave 4** *(blocked on Wave 3)*
+- [ ] 05-05-PLAN.md — DELETE /library/:id; row-removal + OOB-footer compound response; explicit recipes-untouched regression test (LIB-06 invariant); closes LIB-06
+
+**Wave 5** *(blocked on Wave 4 — FINAL atomic-tab-launch)*
+- [ ] 05-06-PLAN.md — views/layout.njk: add <a href="/library">Library</a> nav link after History; invert the no-nav-tab regression test from Plan 02; closes LIB-01
 
 ### Phase 6: Inline Fix
 **Goal**: Users can fix a mis-categorized ingredient's library entry in-context from the grocery list or recipe page without navigating to the Library tab.
@@ -132,7 +150,7 @@ Plans:
 | 2. Library Helpers | 0/3 | Planned | - |
 | 3. Categorization Layering | 3/3 | Complete | 2026-05-06 |
 | 4. Auto-Extract & Backfill | 3/3 | Complete | 2026-05-07 |
-| 5. Library Tab | 0/? | Not started | - |
+| 5. Library Tab | 0/6 | Planned | - |
 | 6. Inline Fix | 0/? | Not started | - |
 
 ---
