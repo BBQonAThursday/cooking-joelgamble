@@ -137,7 +137,22 @@ Plans:
   3. Grocery items and recipe ingredient lines that do not match any library entry show a "Categorize" affordance instead; clicking it creates a new library entry seeded from the item text.
   4. The Fix editor contains only category dropdowns and a Save button — canonical name and aliases are not editable inline; an "Edit full entry" link navigates to the Library tab entry.
   5. Recipe pages always display the original scraped ingredient text (`ingredient.text`); renaming a library entry's canonical name does not change any text on any recipe page.
-**Plans**: TBD
+**Plans:** 5 plans
+Plans:
+
+**Wave 1**
+- [ ] 06-01-PLAN.md — Surface scaffolding: icon-pencil partial + recipe-ingredient-line + recipe-ingredient-groups partials + grocery-item.njk pencil button + recipe.njk extension + presence tests
+
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 06-02-PLAN.md — 3 GET routes (/library/:id/categories-edit, /library/categorize-edit, /library/cancel-fix) + 2 new editor partials (library-fix-editor.njk, library-categorize-editor.njk) + decorateIngredients flatIndex extension + GET tests
+- [ ] 06-03-PLAN.md — CSS additions (~140 lines) for pencil button + editor containers + responsive editor stack
+
+**Wave 3** *(blocked on Wave 2 — sequential routes/library.js edits)*
+- [ ] 06-04-PLAN.md — POST /library/:id/categories Save endpoint (HX-Current-URL OOB routing) + extend POST /library Categorize-mode branch + recipe-ingredient-groups-oob.njk wrapper + POST tests
+
+**Wave 4** *(blocked on Wave 3)*
+- [ ] 06-05-PLAN.md — Round-trip integration tests + FIX-04 invariant tests (rename library entry; grocery + recipe text unchanged)
+
 **UI hint**: yes
 
 ---
@@ -151,7 +166,7 @@ Plans:
 | 3. Categorization Layering | 3/3 | Complete | 2026-05-06 |
 | 4. Auto-Extract & Backfill | 3/3 | Complete | 2026-05-07 |
 | 5. Library Tab | 6/6 | Complete | 2026-05-07 |
-| 6. Inline Fix | 0/? | Not started | - |
+| 6. Inline Fix | 0/5 | Planned | - |
 
 ---
 
