@@ -2,8 +2,8 @@
 phase: 6
 slug: inline-fix
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-07
 ---
 
@@ -36,11 +36,22 @@ created: 2026-05-07
 
 ## Per-Task Verification Map
 
-> Populated by gsd-planner during PLAN.md generation. Each task in each plan should have an `<automated>` verify command pointing into the test files below, OR be marked as Wave 0 dependency for tests that need to land first.
+> Populated by gsd-planner during PLAN.md generation. Each task in each plan has an `<automated>` verify command pointing into the test files below, OR is marked as a Wave 0 dependency for tests that need to land first.
 
-| Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | TBD | TBD | FIX-01..FIX-04 | — | N/A | http | TBD | ❌ W0 | ⬜ pending |
+| Task ID | Plan | Wave | Requirement | Threat Ref | Test Type | Automated Command | File Exists | Status |
+|---------|------|------|-------------|------------|-----------|-------------------|-------------|--------|
+| 06-01-01 | 01 | 1 | FIX-01, FIX-02 | — | template | `node -e "...icon-pencil.njk shape check..."` | ✅ | ⬜ pending |
+| 06-01-02 | 01 | 1 | FIX-01 | T-06-01-01 | http | `node --test test/grocery-routes.test.js 2>&1 \| grep -E "^(ok\|not ok\|# pass\|# fail\|# tests)" \| tail -20` | ✅ | ⬜ pending |
+| 06-01-03 | 01 | 1 | FIX-02, FIX-04 | T-06-01-01 | http | `node --test test/recipes.test.js 2>&1 \| grep -E "^(# pass\|# fail\|# tests)" \| tail -5` | ✅ | ⬜ pending |
+| 06-02-01 | 02 | 2 | FIX-01, FIX-03 | T-06-02-01 | template | `node -e "...library-fix-editor.njk + library-categorize-editor.njk shape check..."` | ✅ | ⬜ pending |
+| 06-02-02 | 02 | 2 | FIX-01, FIX-02, FIX-03 | T-06-02-01 | unit | `node -e "require('./routes/library')" && node --test test/calc.test.js && grep -c "router\.get\(\['\\\"]/library/categorize-edit" routes/library.js && grep -c "router\.get\(\['\\\"]/library/cancel-fix" routes/library.js && grep -c "router\.get\(\['\\\"]/library/:id/categories-edit" routes/library.js` | ✅ | ⬜ pending |
+| 06-02-03 | 02 | 2 | FIX-01, FIX-02, FIX-03 | T-06-02-01 | http | `node --test test/library-categories-routes.test.js test/library-routes.test.js 2>&1 \| grep -E "^(# pass\|# fail\|# tests)" \| tail -5` | ✅ | ⬜ pending |
+| 06-03-01 | 03 | 2 | FIX-01, FIX-02 | — | unit | `node -e "...20 CSS selector regex checks against public/styles.css..."` | ✅ | ⬜ pending |
+| 06-04-01 | 04 | 3 | FIX-01, FIX-02, FIX-03 | T-06-04-01, T-06-04-03, T-06-04-05 | unit | `node -e "require('./routes/library')" && grep -c "router\.post" routes/library.js \| tr -d '\r\n'` | ✅ | ⬜ pending |
+| 06-04-02 | 04 | 3 | FIX-01, FIX-02, FIX-03 | T-06-04-01, T-06-04-02, T-06-04-03 | http | `node --test test/library-categories-routes.test.js test/library-routes.test.js 2>&1 \| grep -E "^(# pass\|# fail\|# tests)" \| tail -5` | ✅ | ⬜ pending |
+| 06-05-01 | 05 | 4 | FIX-01, FIX-02, FIX-03 | — | http | `node --test test/library-categories-routes.test.js 2>&1 \| grep -E "^(# pass\|# fail\|# tests)" \| tail -5` | ✅ | ⬜ pending |
+| 06-05-02 | 05 | 4 | FIX-04 | — | http | `node --test test/grocery-routes.test.js 2>&1 \| grep -E "^(# pass\|# fail\|# tests)" \| tail -5` | ✅ | ⬜ pending |
+| 06-05-03 | 05 | 4 | FIX-04 | — | http | `node --test test/recipes.test.js 2>&1 \| grep -E "^(# pass\|# fail\|# tests)" \| tail -5` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -48,9 +59,9 @@ created: 2026-05-07
 
 ## Wave 0 Requirements
 
-- [ ] `test/library-categories-routes.test.js` — stubs for FIX-01, FIX-02, FIX-03 (categories-only Save endpoint, Categorize submission, GET fragment shapes, conflict 400 path)
-- [ ] `test/grocery-routes.test.js` — extend with pencil-button presence assertions (matched + unmatched conditional `hx-get` target)
-- [ ] `test/recipes-routes.test.js` — extend with pencil-button presence assertions on ingredient `<li>` (matched + unmatched conditional `hx-get` target) + FIX-04 invariant (recipe page never substitutes `entry.name` for `ingredient.text`)
+- [x] `test/library-categories-routes.test.js` — created in Plan 06-02 (Wave 2), populated by Plans 06-02 / 06-04 / 06-05
+- [x] `test/grocery-routes.test.js` — extended in Plan 06-01 (Wave 1) with pencil-button assertions
+- [x] `test/recipes.test.js` — extended in Plan 06-01 (Wave 1) with pencil-button assertions + FIX-04 invariant
 
 *Wave 0 covers test scaffolding for the new endpoints + the per-surface OOB-shape assertions.*
 
@@ -68,11 +79,13 @@ created: 2026-05-07
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 10s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 10s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-05-07
+</content>
+</invoke>
