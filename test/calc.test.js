@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { buildView, sourceDomain, formatTotalTime } = require('../lib/calc');
+const { buildView, sourceDomain, formatTotalTime, buildLibraryView } = require('../lib/calc');
 
 test('buildView returns empty view for empty state', () => {
   const v = buildView({ recipes: [] });
@@ -430,4 +430,9 @@ test('decorateIngredients D-33: a single call with multiple ingredients shares o
   // the simpler invariant: two consecutive calls produce identical outputs.
   const groups2 = decorateIngredients(['1 onion', '1 carrot'], library);
   assert.deepStrictEqual(groups2, groups);
+});
+
+// === Phase 5 buildLibraryView smoke (filled in by Plan 02 + 03 + 04 tasks) ===
+test('buildLibraryView is exported by lib/calc (Plan 02 lands implementation)', { skip: typeof buildLibraryView !== 'function' && 'pending Plan 02' }, () => {
+  assert.strictEqual(typeof buildLibraryView, 'function');
 });
