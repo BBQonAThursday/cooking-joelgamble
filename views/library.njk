@@ -1,0 +1,23 @@
+{% extends "layout.njk" %}
+{% block content %}
+  <main class="app">
+    <header class="app-header">
+      <h1>Library</h1>
+    </header>
+    <form class="library-add"
+          hx-post="/library"
+          hx-swap="none"
+          hx-on:htmx:after-request="if(event.detail.successful) this.reset()">
+      <input type="text" name="name" placeholder="Canonical name" required maxlength="200" autocomplete="off">
+      <input type="text" name="aliases" placeholder="Aliases (comma-separated)" maxlength="1000" autocomplete="off">
+      <select name="recipeCategory">
+        {% for cat in RECIPE_CATEGORIES %}<option value="{{ cat }}">{{ cat }}</option>{% endfor %}
+      </select>
+      <select name="groceryCategory">
+        {% for cat in GROCERY_CATEGORIES %}<option value="{{ cat }}">{{ cat }}</option>{% endfor %}
+      </select>
+      <button type="submit">Add entry</button>
+    </form>
+    {% include "partials/library-panel.njk" %}
+  </main>
+{% endblock %}

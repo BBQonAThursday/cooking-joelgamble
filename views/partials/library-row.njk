@@ -1,0 +1,17 @@
+<li id="library-row-{{ entry.id }}" class="library-row">
+  <span class="library-name">{{ entry.name }}</span>
+  <span class="library-aliases">{{ entry.aliasesDisplay }}</span>
+  <span class="library-category-recipe">{{ entry.recipeCategory }}</span>
+  <span class="library-category-grocery">{{ entry.groceryCategory }}</span>
+  <span class="library-badge library-badge-{% if entry.curated %}curated{% else %}uncurated{% endif %}">[{% if entry.curated %}curated{% else %}uncurated{% endif %}]</span>
+  {% if entry.unused %}<span class="library-badge library-badge-unused">[unused]</span>{% endif %}
+  <button class="library-edit"
+          hx-get="/library/{{ entry.id }}/edit"
+          hx-target="#library-row-{{ entry.id }}"
+          hx-swap="outerHTML">Edit</button>
+  <button class="library-delete"
+          hx-delete="/library/{{ entry.id }}"
+          hx-target="#library-row-{{ entry.id }}"
+          hx-swap="outerHTML"
+          hx-confirm="{{ entry.deleteConfirm }}">Delete</button>
+</li>

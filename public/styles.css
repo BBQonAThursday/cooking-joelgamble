@@ -416,3 +416,80 @@ a:hover { text-decoration: underline; }
   .paste-form button { width: 100%; }
   .recipe-body { grid-template-columns: 1fr; gap: 16px; }
 }
+
+/* Library */
+.library-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.library-add input[type="text"],
+.library-add select {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 16px;
+  background: var(--card-bg);
+}
+.library-add input[type="text"] { flex: 1; min-width: 160px; }
+.library-add button {
+  padding: 10px 18px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius);
+  font-size: 16px;
+  cursor: pointer;
+}
+.library-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.library-search {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+.library-filters { display: flex; gap: 4px; }
+.library-filter-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+}
+.library-filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+.library-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  padding: 12px;
+}
+.library-list { list-style: none; padding: 0; margin: 0; }
+.library-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.library-row:last-child { border-bottom: none; }
+.library-name { font-weight: 600; }
+.library-aliases { color: var(--muted); font-size: 13px; }
+.library-category-recipe,
+.library-category-grocery { font-size: 12px; color: var(--muted); }
+.library-badge { font-size: 11px; padding: 2px 6px; border-radius: 3px; }
+.library-badge-curated { background: var(--accent); color: white; }
+.library-badge-uncurated { background: var(--muted); color: white; }
+.library-badge-unused { background: var(--border); color: var(--muted); }
+.library-empty { padding: 16px; text-align: center; color: var(--muted); }
+.library-clear-search { margin: 8px auto; display: block; }
+.library-footer { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }

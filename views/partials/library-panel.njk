@@ -1,0 +1,52 @@
+<section id="library-panel" class="library-panel">
+  <div class="library-controls">
+    <input type="hidden" name="filter" value="{{ filter }}">
+    <input type="text"
+           name="q"
+           value="{{ q }}"
+           placeholder="Search entries..."
+           class="library-search"
+           hx-get="/library"
+           hx-trigger="keyup changed delay:300ms"
+           hx-target="#library-panel"
+           hx-swap="outerHTML"
+           hx-push-url="true"
+           hx-include="[name='filter']">
+    <div class="library-filters">
+      <button hx-get="/library?filter=All&q={{ q }}"
+              hx-target="#library-panel"
+              hx-swap="outerHTML"
+              hx-push-url="true"
+              class="library-filter-btn{% if filter == 'All' %} active{% endif %}">All</button>
+      <button hx-get="/library?filter=Uncurated&q={{ q }}"
+              hx-target="#library-panel"
+              hx-swap="outerHTML"
+              hx-push-url="true"
+              class="library-filter-btn{% if filter == 'Uncurated' %} active{% endif %}">Uncurated</button>
+      <button hx-get="/library?filter=Unused&q={{ q }}"
+              hx-target="#library-panel"
+              hx-swap="outerHTML"
+              hx-push-url="true"
+              class="library-filter-btn{% if filter == 'Unused' %} active{% endif %}">Unused</button>
+    </div>
+  </div>
+
+  <ul class="library-list">
+    {% for entry in entries %}{% include "partials/library-row.njk" %}{% endfor %}
+  </ul>
+
+  {% if not hasEntries %}
+    {% if q or filter != 'All' %}
+      <p class="library-empty">No entries match "{{ q }}"{% if filter != 'All' %} with filter {{ filter }}{% endif %}.</p>
+      <button class="library-clear-search"
+              hx-get="/library"
+              hx-target="#library-panel"
+              hx-swap="outerHTML"
+              hx-push-url="true">Clear search</button>
+    {% else %}
+      <p class="library-empty">Library is empty. Add an entry above or save a recipe to seed automatically.</p>
+    {% endif %}
+  {% endif %}
+
+  {% include "partials/library-footer.njk" %}
+</section>
