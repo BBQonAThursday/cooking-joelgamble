@@ -116,7 +116,7 @@ Plans:
 - [x] 05-02-PLAN.md — buildLibraryView in lib/calc.js (D-55/D-56/D-66); routes/library.js with GET /library mounted in server.js; views/library.njk + library-panel.njk + library-row.njk + library-* CSS; tests close LIB-02 + LIB-03
 
 **Wave 2** *(blocked on Wave 1)*
-- [ ] 05-03-PLAN.md — GET /library/:id (read-only row fragment for Cancel) + GET /library/:id/edit (edit-form fragment) + POST /library (manual-add); views/partials/library-row-edit.njk; closes LIB-04
+- [x] 05-03-PLAN.md — GET /library/:id (read-only row fragment for Cancel) + GET /library/:id/edit (edit-form fragment) + POST /library (manual-add); views/partials/library-row-edit.njk; closes LIB-04
 
 **Wave 3** *(blocked on Wave 2)*
 - [ ] 05-04-PLAN.md — POST /library/:id (edit save); compound row + OOB-footer response on 200; edit-form fragment with inline aliasError on 400 (D-61); curated:true forced on save; closes LIB-05

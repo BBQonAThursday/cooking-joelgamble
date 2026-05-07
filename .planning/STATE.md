@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Executing Phase 05
-last_updated: "2026-05-07T14:22:46.000Z"
+last_updated: "2026-05-07T15:30:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 16
-  completed_plans: 12
-  percent: 75
+  completed_plans: 13
+  percent: 81
 ---
 
 # Project State — Ingredient Library
@@ -30,12 +30,12 @@ progress:
 ## Current Position
 
 Phase: 05 (library-tab) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 | Field | Value |
 |-------|-------|
-| **Phase** | 5 — Library Tab — executing (2/6 plans complete) |
-| **Plan** | 05-02 complete (buildLibraryView + GET /library + templates + CSS + 23 new tests). Next: 05-03 (manual-add POST /library, inline edit GET /library/:id/edit, GET /library/:id). |
-| **Status** | All 6 phases mapped. Phases 1-4 complete (10/10 plans). 05-01, 05-02 complete. 322/322 tests passing. |
+| **Phase** | 5 — Library Tab — executing (3/6 plans complete) |
+| **Plan** | 05-03 complete (GET /library/:id, GET /library/:id/edit, POST /library manual-add, library-row-edit.njk, 11 new tests). Next: 05-04 (POST /library/:id inline edit-save). |
+| **Status** | All 6 phases mapped. Phases 1-4 complete (10/10 plans). 05-01, 05-02, 05-03 complete. 333/333 tests passing. LIB-04 closed. |
 | **Blocking** | Nothing |
 
 **Progress:**
@@ -45,10 +45,10 @@ Phase 1 [##########] 100%
 Phase 2 [##########] 100%
 Phase 3 [##########] 100%
 Phase 4 [##########] 100%
-Phase 5 [##        ] 33%
+Phase 5 [###       ] 50%
 Phase 6 [          ] 0%
 
-Milestone [########  ] 75%
+Milestone [#########  ] 81%
 ```
 
 ---
@@ -62,10 +62,14 @@ Milestone [########  ] 75%
 | Requirements mapped | 21 / 21 |
 | Requirements validated | 13 / 21 (FND-01..04, EXTR-01, EXTR-02, EXTR-03, EXTR-04, MATCH-01, MATCH-02, MATCH-03) |
 | Plans written | 16 |
-| Plans complete | 11 |
+| Plans complete | 13 |
 | Phase 4 tests added | 13 (10 backfill + 3 SC#1 in recipes.test.js) |
 | Phase 4 commits | 9 (3 RED + 3 GREEN + 3 SUMMARY) |
-| Test suite | 298/299 passing (1 intentional skip — buildLibraryView pending Plan 02) |
+| Test suite | 333/333 passing |
+| Plan 05-03 duration | ~15 min |
+| Plan 05-03 tasks | 4 |
+| Plan 05-03 files modified | 3 |
+| Plan 05-03 tests added | 11 |
 | Plan 03-02 duration | ~12 min |
 | Plan 03-02 tasks | 2 |
 | Plan 03-02 files modified | 2 |
@@ -82,6 +86,7 @@ Milestone [########  ] 75%
 
 ### Key Decisions Locked In
 
+- **Plan 05-03 closures (2026-05-07):** GET /library/:id + GET /library/:id/edit return ONLY row fragments via renderSync (not respondWithUpdates -- avoids OOB corruption of HTMX outerHTML primary swap target). POST /library creates entries with curated:true; alias-conflict checked per-alias via aliasConflict(); aliases parsed: split on comma, trim, dedupe via Set. Toast 'Added entry' (verb-only, ASCII-safe). Full panel re-render on success via respondWithUpdates (D-67 Discretion). entryViewById helper reuses buildLibraryView for consistent decoration. views/partials/library-row-edit.njk shares outer id="library-row-{{ entry.id }}" with library-row.njk for bidirectional HTMX outerHTML toggle. Cancel button type=button with hx-get="/library/:id". LIB-04 closed. 333/333 tests passing (+11 new HTTP tests).
 - **Plan 05-02 closures (2026-05-07):** buildLibraryView added to lib/calc.js — per-render recipe walk (D-66): buildLibraryIndex + findEntryInIndex + seen Set per recipe (prevents double-count). Alphabetical sort via localeCompare (D-55). Filter + search AND-combined (D-56). Entry decoration: aliasesDisplay, recipeCount, unused, deleteConfirm (singular/plural). unusedCount over full library (not filtered slice). routes/library.js created with GET /library; mounts in server.js after history route. Template hierarchy: library.njk -> library-panel.njk (#library-panel OOB target) -> library-row.njk (id=library-row-{{ entry.id }}). Debounced search hx-trigger=keyup changed delay:300ms; hx-include=[name='filter'] preserves filter state; hx-push-url=true (D-57/D-58). Two empty-state branches (D-59). CSS block library-* appended to styles.css. 322/322 tests passing (+13 unit buildLibraryView + +10 GET /library HTTP). LIB-02 + LIB-03 closed. No nav tab added (atomic-tab-launch invariant preserved).
 - **Plan 05-01 closures (2026-05-07):** Wave 0 prerequisites complete. renderSync added to lib/render.js module.exports (was already defined at line 14-17, just not exported). views/partials/library-footer.njk created with stable id="library-footer", unusedCount 0/1/plural branches, no hx-swap-oob (added at runtime by injectOob). views/layout.njk gains htmx-config meta tag: responseHandling with code:400 swap:true rule placed BEFORE [45].. catch-all (first-match wins); 400 omits error:true per D-61 silent-toast-on-conflict; no nav tab added (Wave 5 atomic-tab-launch invariant). test/library-routes.test.js scaffold created with beforeEach/afterEach, addLibraryEntry helper, and Wave 0 healthz smoke (1 pass). test/calc.test.js extended with buildLibraryView destructure and Phase 5 smoke test that skips when undefined (pending Plan 02). 298/299 tests passing (1 intentional skip).
 - **Phase 4 closures (2026-05-07):** Plan 04-01 lands `lib/backfill.js` with module-reference import (`const libraryMod = require('./library')`) — minor deviation from PATTERNS.md destructured snippet to make the D-41 monkey-patch test fire (mirrors the existing `scrapeMod` idiom). Plan 04-02 inserts 12 new lines in the `if (require.main === module)` block; `createApp()` byte-identical so test/_helpers.js's startTestServer continues seeing a backfill-free createApp (D-43/D-51). Plan 04-03 mirrors the same module-reference deviation in `routes/recipes.js`. End-to-end smoke confirmed SC#3 idempotency on the production code path: first boot logged "Backfilled 2 library entries from 1 recipes" and persisted ISO timestamp; second boot returned `alreadyRan: true`, library length + timestamp unchanged. EXTR-01 and EXTR-03 closed. 297/297 tests passing (284 prior + 13 new). Planning defect noted: 04-02 acceptance criterion `grep -c "runBackfill" server.js` should equal 1, but the snippet itself has 2 occurrences — followed the snippet.
@@ -135,10 +140,10 @@ None.
 
 ## Session Continuity
 
-**To resume:** Read `ROADMAP.md` for phase goals. Phase 5 is EXECUTING — Plans 05-01 and 05-02 complete. GET /library live; buildLibraryView in lib/calc.js; templates library.njk + library-panel.njk + library-row.njk; 322/322 tests passing.
+**To resume:** Read `ROADMAP.md` for phase goals. Phase 5 is EXECUTING — Plans 05-01, 05-02, 05-03 complete. GET /library live; GET /library/:id + GET /library/:id/edit fragment routes live; POST /library manual-add live (LIB-04 closed); library-row-edit.njk created; 333/333 tests passing.
 
 **Last session:** 2026-05-07
 
-**Stopped at:** Completed 05-02-PLAN.md
+**Stopped at:** Completed 05-03-PLAN.md
 
-**Next action:** Execute `05-03-PLAN.md` — manual-add POST /library, GET /library/:id/edit inline form, GET /library/:id read-only row fragment, views/partials/library-row-edit.njk; closes LIB-04.
+**Next action:** Execute `05-04-PLAN.md` — POST /library/:id inline edit-save endpoint (Save button wires to this); alias-conflict inline error path via 400 HTML fragment; closes LIB-05.
