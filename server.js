@@ -23,6 +23,7 @@ function createApp() {
   app.use('/', require('./routes/weeks'));
   app.use('/', require('./routes/grocery'));
   app.use('/', require('./routes/history'));
+  app.use('/', require('./routes/library'));
 
   const storage = require('./lib/storage');
   const { buildView } = require('./lib/calc');
