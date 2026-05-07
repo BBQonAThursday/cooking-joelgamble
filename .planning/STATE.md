@@ -6,10 +6,10 @@ status: Executing Phase 05
 last_updated: "2026-05-07T15:30:00.000Z"
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 16
-  completed_plans: 14
-  percent: 88
+  completed_plans: 16
+  percent: 94
 ---
 
 # Project State — Ingredient Library
@@ -23,7 +23,7 @@ progress:
 
 **Core value:** Ingredient categorization on the grocery list and recipe detail pages converges toward accuracy as the user curates their library, replacing the brittle keyword-table heuristic with a personal source of truth.
 
-**Current focus:** Phase 05 — library-tab
+**Current focus:** Phase 06 — Inline Fix
 
 ---
 
@@ -33,9 +33,9 @@ Phase: 05 (library-tab) — EXECUTING
 Plan: 4 of 6
 | Field | Value |
 |-------|-------|
-| **Phase** | 5 — Library Tab — executing (4/6 plans complete) |
-| **Plan** | 05-04 complete (POST /library/:id save handler, 9 new tests, LIB-05 closed). Next: 05-05 (DELETE /library/:id). |
-| **Status** | All 6 phases mapped. Phases 1-4 complete (10/10 plans). 05-01, 05-02, 05-03, 05-04 complete. 342/342 tests passing. LIB-04 + LIB-05 closed. |
+| **Phase** | 5 — Library Tab — COMPLETE (6/6 plans complete) |
+| **Plan** | 05-06 complete (Library nav tab live, LIB-01 closed). Phase 5 DONE. Next: Phase 6 (Inline Fix / FIX-01..FIX-04). |
+| **Status** | All 6 phases mapped. Phases 1-5 complete (16/16 plans). 349/349 tests passing. All 6 LIB requirements closed (LIB-01..LIB-06). |
 | **Blocking** | Nothing |
 
 **Progress:**
@@ -45,10 +45,10 @@ Phase 1 [##########] 100%
 Phase 2 [##########] 100%
 Phase 3 [##########] 100%
 Phase 4 [##########] 100%
-Phase 5 [######    ] 67%
+Phase 5 [##########] 100%
 Phase 6 [          ] 0%
 
-Milestone [##########] 88%
+Milestone [##########] 94%
 ```
 
 ---
@@ -90,6 +90,8 @@ Milestone [##########] 88%
 
 ### Key Decisions Locked In
 
+- **Plan 05-06 closures (2026-05-07):** Library nav tab landed in views/layout.njk (1 line insert after History tab). Tab order: Recipes | This Week | Grocery | History | Library (5th position per LIB-01 / REQUIREMENTS.md). Active class fires when activeTab=='library' (already plumbed by buildLibraryView in Plan 02). Atomic-tab-launch invariant fully respected -- nav link added ONLY in this final wave. Regression test (no-nav-tab doesNotMatch) inverted to assert presence + active class. 2 new LIB-01 tests: cross-page inactive state (/grocery) + placement after History. 349/349 tests passing (+2 new tests). Phase 5 COMPLETE. LIB-01..LIB-06 all closed.
+- **Plan 05-05 closures (2026-05-07):** DELETE /library/:id removes entry, OOB-swaps footer, verb-only toast 'Removed entry'. state.recipes untouched (LIB-06 regression invariant). Compound response: injectOob(footer) only -- empty primary body removes row via HTMX outerHTML. 5 new tests. 347/347 passing. LIB-06 closed.
 - **Plan 05-04 closures (2026-05-07):** POST /library/:id save endpoint closed LIB-05. 200 path: compound row+OOB-footer via renderSync+injectOob (NOT respondWithUpdates -- avoids hx-swap-oob on row). 400 path: edit-form fragment with user-typed values preserved + inline aliasError; no toast (D-61). 404 path: plain text. aliasConflict called with excludingId so self-alias re-submit does not false-positive. curated:true forced via ELS spread on every save. setToast('Saved entry') only on 200 (D-67). 9 new HTTP tests; total 342/342 passing. Deviation: test regex patterns use (&#39;|') alternation because Nunjucks autoescape converts single quotes to &#39; in rendered HTML.
 - **Plan 05-03 closures (2026-05-07):** GET /library/:id + GET /library/:id/edit return ONLY row fragments via renderSync (not respondWithUpdates -- avoids OOB corruption of HTMX outerHTML primary swap target). POST /library creates entries with curated:true; alias-conflict checked per-alias via aliasConflict(); aliases parsed: split on comma, trim, dedupe via Set. Toast 'Added entry' (verb-only, ASCII-safe). Full panel re-render on success via respondWithUpdates (D-67 Discretion). entryViewById helper reuses buildLibraryView for consistent decoration. views/partials/library-row-edit.njk shares outer id="library-row-{{ entry.id }}" with library-row.njk for bidirectional HTMX outerHTML toggle. Cancel button type=button with hx-get="/library/:id". LIB-04 closed. 333/333 tests passing (+11 new HTTP tests).
 - **Plan 05-02 closures (2026-05-07):** buildLibraryView added to lib/calc.js — per-render recipe walk (D-66): buildLibraryIndex + findEntryInIndex + seen Set per recipe (prevents double-count). Alphabetical sort via localeCompare (D-55). Filter + search AND-combined (D-56). Entry decoration: aliasesDisplay, recipeCount, unused, deleteConfirm (singular/plural). unusedCount over full library (not filtered slice). routes/library.js created with GET /library; mounts in server.js after history route. Template hierarchy: library.njk -> library-panel.njk (#library-panel OOB target) -> library-row.njk (id=library-row-{{ entry.id }}). Debounced search hx-trigger=keyup changed delay:300ms; hx-include=[name='filter'] preserves filter state; hx-push-url=true (D-57/D-58). Two empty-state branches (D-59). CSS block library-* appended to styles.css. 322/322 tests passing (+13 unit buildLibraryView + +10 GET /library HTTP). LIB-02 + LIB-03 closed. No nav tab added (atomic-tab-launch invariant preserved).
@@ -145,10 +147,10 @@ None.
 
 ## Session Continuity
 
-**To resume:** Read `ROADMAP.md` for phase goals. Phase 5 is EXECUTING — Plans 05-01 through 05-04 complete. POST /library/:id live (LIB-05 closed); 342/342 tests passing.
+**To resume:** Read `ROADMAP.md` for phase goals. Phase 5 is COMPLETE — all 6 plans done (05-01..05-06). 349/349 tests passing. All LIB-01..LIB-06 requirements closed. Next: Phase 6 (Inline Fix / FIX-01..FIX-04).
 
 **Last session:** 2026-05-07
 
-**Stopped at:** Completed 05-04-PLAN.md
+**Stopped at:** Completed 05-06-PLAN.md (Phase 5 COMPLETE)
 
-**Next action:** Execute `05-05-PLAN.md` — DELETE /library/:id route; row-removal + OOB-footer compound response; closes LIB-06.
+**Next action:** Execute Phase 6 — Inline Fix affordance on grocery items and recipe ingredient lines.

@@ -125,7 +125,7 @@ Plans:
 - [x] 05-05-PLAN.md — DELETE /library/:id; row-removal + OOB-footer compound response; explicit recipes-untouched regression test (LIB-06 invariant); closes LIB-06
 
 **Wave 5** *(blocked on Wave 4 — FINAL atomic-tab-launch)*
-- [ ] 05-06-PLAN.md — views/layout.njk: add <a href="/library">Library</a> nav link after History; invert the no-nav-tab regression test from Plan 02; closes LIB-01
+- [x] 05-06-PLAN.md — views/layout.njk: add <a href="/library">Library</a> nav link after History; invert the no-nav-tab regression test from Plan 02; closes LIB-01
 
 ### Phase 6: Inline Fix
 **Goal**: Users can fix a mis-categorized ingredient's library entry in-context from the grocery list or recipe page without navigating to the Library tab.
@@ -150,7 +150,7 @@ Plans:
 | 2. Library Helpers | 0/3 | Planned | - |
 | 3. Categorization Layering | 3/3 | Complete | 2026-05-06 |
 | 4. Auto-Extract & Backfill | 3/3 | Complete | 2026-05-07 |
-| 5. Library Tab | 4/6 | Executing | - |
+| 5. Library Tab | 6/6 | Complete | 2026-05-07 |
 | 6. Inline Fix | 0/? | Not started | - |
 
 ---

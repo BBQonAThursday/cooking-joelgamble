@@ -29,12 +29,12 @@
 
 ### Library Tab (LIB)
 
-- [ ] **LIB-01**: New top-level tab "Library" in `views/layout.njk` — sits as the 5th tab alongside Recipes / This Week / Grocery / History. Sets `activeTab='library'` on the page.
-- [ ] **LIB-02**: `GET /library` renders the page: full entry list (default filter "all"), search box (substring match across name + aliases), filter buttons "All" / "Uncurated" / "Unused", per-entry "edit" affordance (opens inline edit row).
-- [ ] **LIB-03**: Each entry row shows canonical name, aliases (comma-joined), recipe category, grocery category, curated indicator, "unused" badge if no recipe currently references any of its aliases. Unused state computed at render time.
-- [ ] **LIB-04**: `POST /library` (or button on the Library tab) creates a new entry manually. Form fields: canonical name (required), aliases (optional comma-separated), recipe category, grocery category. `curated: true` on manual creation.
+- [x] **LIB-01**: New top-level tab "Library" in `views/layout.njk` — sits as the 5th tab alongside Recipes / This Week / Grocery / History. Sets `activeTab='library'` on the page. *(Closed by Plan 05-06 — commits d296c1d, 883acbc.)*
+- [x] **LIB-02**: `GET /library` renders the page: full entry list (default filter "all"), search box (substring match across name + aliases), filter buttons "All" / "Uncurated" / "Unused", per-entry "edit" affordance (opens inline edit row). *(Closed by Plan 05-02.)*
+- [x] **LIB-03**: Each entry row shows canonical name, aliases (comma-joined), recipe category, grocery category, curated indicator, "unused" badge if no recipe currently references any of its aliases. Unused state computed at render time. *(Closed by Plan 05-02.)*
+- [x] **LIB-04**: `POST /library` (or button on the Library tab) creates a new entry manually. Form fields: canonical name (required), aliases (optional comma-separated), recipe category, grocery category. `curated: true` on manual creation. *(Closed by Plan 05-03.)*
 - [x] **LIB-05**: `PATCH /library/:id` (or `POST /library/:id` accepting `_method=PATCH`) updates an existing entry. Validates aliases against `aliasConflict`. Sets `curated: true` when an uncurated entry is edited. OOB-swap re-renders the affected row. *(Closed by Plan 05-04 — commits cb770db, a99ac44.)*
-- [ ] **LIB-06**: `DELETE /library/:id` removes an entry. Does not mutate any `state.recipes[].ingredients[]`. Categorization gracefully falls back to heuristic for previously-matched strings. OOB-swap removes the row.
+- [x] **LIB-06**: `DELETE /library/:id` removes an entry. Does not mutate any `state.recipes[].ingredients[]`. Categorization gracefully falls back to heuristic for previously-matched strings. OOB-swap removes the row. *(Closed by Plan 05-05 — commits f546f26, 53a8009.)*
 
 ### Inline Fix (FIX)
 
