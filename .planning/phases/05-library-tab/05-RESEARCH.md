@@ -1123,7 +1123,7 @@ module.exports = router;
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`renderSync` export from `lib/render.js`**
    - What we know: `renderSync` is defined in `lib/render.js` (line 14) but NOT in `module.exports` (line 33 only exports `renderFragments, respondWithUpdates, injectOob`).
