@@ -16,16 +16,9 @@
       {% if recipe.sourceDomain %} · <a href="{{ recipe.sourceUrl }}" rel="noopener">{{ recipe.sourceDomain }}</a>{% endif %}
     </p>
     <div class="recipe-body">
-      <section class="recipe-ingredients">
+      <section class="recipe-ingredients" id="recipe-ingredient-groups-{{ recipe.id }}">
         <h2>Ingredients</h2>
-        {% for group in recipe.ingredientGroups %}
-          <h3 class="ingredient-category">{{ group.category }}</h3>
-          <ul>
-            {% for ing in group.items %}<li>{{ ing.text }}</li>{% endfor %}
-          </ul>
-        {% else %}
-          <p class="empty">No ingredients found.</p>
-        {% endfor %}
+        {% include "partials/recipe-ingredient-groups.njk" %}
       </section>
       <section class="recipe-instructions">
         <h2>Instructions</h2>

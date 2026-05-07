@@ -1,0 +1,11 @@
+{% for group in recipe.ingredientGroups %}
+  <h3 class="ingredient-category">{{ group.category }}</h3>
+  <ul>
+    {% for ing in group.items %}
+      {% set index = loop.index0 %}
+      {% include "partials/recipe-ingredient-line.njk" %}
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="empty">No ingredients found.</p>
+{% endfor %}

@@ -220,3 +220,114 @@ test('POST /recipes still saves and toasts Saved when extractAndSeed throws (D-4
     libraryMod.extractAndSeed = originalExtractAndSeed;
   }
 });
+
+// ----- Phase 6 / FIX-02 + FIX-04: pencil affordance on recipe ingredient lines
+
+function seedLibraryAndRecipe(entry, recipe) {
+  const storage = require('../lib/storage');
+  const state = storage.get();
+  state.library = [entry];
+  state.libraryMigratedAt = new Date().toISOString();
+  state.recipes = [recipe];
+  storage.save();
+}
+
+function makeEntry(overrides) {
+  return Object.assign({
+    id: 'lb_test0001',
+    name: 'apple',
+    aliases: [],
+    recipeCategory: 'Veg',
+    groceryCategory: 'Produce',
+    curated: true,
+    createdAt: ''
+  }, overrides);
+}
+
+function makeRecipe(overrides) {
+  return Object.assign({
+    id: 'r_test0001',
+    title: 'T',
+    sourceUrl: 'https://x.test/r',
+    ingredients: [],
+    instructions: [],
+    imageUrl: '',
+    totalMinutes: 0,
+    servings: '1',
+    addedAt: new Date().toISOString()
+  }, overrides);
+}
+
+test('GET /recipes/:id wraps ingredient section with id="recipe-ingredient-groups-:id"', async () => {
+  const recipeId = 'r_test0001';
+  seedLibraryAndRecipe(
+    makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'] }),
+    makeRecipe({ id: recipeId, ingredients: ['1 apple'] })
+  );
+  const res = await helpers.request(ctx.port, { path: `/recipes/${recipeId}` });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, new RegExp(`id="recipe-ingredient-groups-${recipeId}"`));
+});
+
+test('GET /recipes/:id renders each ingredient line with stable per-line id', async () => {
+  const recipeId = 'r_test0001';
+  seedLibraryAndRecipe(
+    makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'] }),
+    makeRecipe({ id: recipeId, ingredients: ['1 apple'] })
+  );
+  const res = await helpers.request(ctx.port, { path: `/recipes/${recipeId}` });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, new RegExp(`id="recipe-ing-${recipeId}-(Protein|Veg|Seasoning|Flavor|Other)-0"`));
+});
+
+test('GET /recipes/:id matched ingredient pencil targets /library/:id/categories-edit', async () => {
+  const recipeId = 'r_test0001';
+  seedLibraryAndRecipe(
+    makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'] }),
+    makeRecipe({ id: recipeId, ingredients: ['1 apple'] })
+  );
+  const res = await helpers.request(ctx.port, { path: `/recipes/${recipeId}` });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /hx-get="\/library\/lb_apple01\/categories-edit\?surface=recipe&recipeId=r_test0001&index=0"/);
+  assert.match(res.body, /class="recipe-pencil"/);
+});
+
+test('GET /recipes/:id unmatched ingredient pencil targets /library/categorize-edit', async () => {
+  const storage = require('../lib/storage');
+  const state = storage.get();
+  state.library = [];
+  state.libraryMigratedAt = new Date().toISOString();
+  state.recipes = [makeRecipe({ id: 'r_test0001', ingredients: ['1 zzunknown'] })];
+  storage.save();
+  const res = await helpers.request(ctx.port, { path: '/recipes/r_test0001' });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /hx-get="\/library\/categorize-edit\?text=1%20zzunknown&surface=recipe&recipeId=r_test0001&index=0"/);
+});
+
+test('GET /recipes/:id renders ing.text not entry.name (FIX-04)', async () => {
+  const recipeId = 'r_test0001';
+  seedLibraryAndRecipe(
+    makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'] }),
+    makeRecipe({ id: recipeId, ingredients: ['1 apple, sliced'] })
+  );
+  const res = await helpers.request(ctx.port, { path: `/recipes/${recipeId}` });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /<span class="recipe-ingredient-text">1 apple, sliced<\/span>/);
+});
+
+test('GET /recipes/:id rendering does not substitute entry.name even after rename (FIX-04)', async () => {
+  const recipeId = 'r_test0001';
+  // Library entry's canonical name is "pomme" but the alias still matches "apple",
+  // so the recipe ingredient still resolves to this entry's libraryEntryId — yet
+  // the rendered text MUST be the original ing.text, not entry.name.
+  seedLibraryAndRecipe(
+    makeEntry({ id: 'lb_apple01', name: 'pomme', aliases: ['apple'] }),
+    makeRecipe({ id: recipeId, ingredients: ['1 apple, sliced'] })
+  );
+  const res = await helpers.request(ctx.port, { path: `/recipes/${recipeId}` });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /<span class="recipe-ingredient-text">1 apple, sliced<\/span>/);
+  assert.ok(!res.body.includes('pomme'), 'rendered body must not contain canonical name pomme');
+  // Sanity: shared icon partial included.
+  assert.match(res.body, /viewBox="0 0 16 16"/);
+});

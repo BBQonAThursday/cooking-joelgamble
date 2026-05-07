@@ -1,0 +1,16 @@
+<li class="recipe-ingredient-line" id="recipe-ing-{{ recipe.id }}-{{ group.category }}-{{ index }}">
+  <span class="recipe-ingredient-text">{{ ing.text }}</span>
+  {% if ing.libraryEntryId %}
+    <button class="recipe-pencil"
+            hx-get="/library/{{ ing.libraryEntryId }}/categories-edit?surface=recipe&recipeId={{ recipe.id }}&index={{ index }}"
+            hx-target="closest li"
+            hx-swap="outerHTML"
+            aria-label="Fix categorization for {{ ing.text }}">{% include "partials/icon-pencil.njk" %}</button>
+  {% else %}
+    <button class="recipe-pencil"
+            hx-get="/library/categorize-edit?text={{ ing.text|urlencode }}&surface=recipe&recipeId={{ recipe.id }}&index={{ index }}"
+            hx-target="closest li"
+            hx-swap="outerHTML"
+            aria-label="Categorize {{ ing.text }}">{% include "partials/icon-pencil.njk" %}</button>
+  {% endif %}
+</li>
