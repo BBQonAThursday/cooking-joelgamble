@@ -45,7 +45,14 @@ function respondPerSurface(req, res, state) {
     res.type('html').send(html);
     return true;
   }
-  const recipeMatch = currentUrl.match(/^[^?#]*\/recipes\/([a-z0-9]+)/i);
+  // Match /recipes/{id} where id is the next path segment (any chars except
+  // /, ?, #). The character class is intentionally broad: production recipe
+  // ids are 10-char base36, but test fixtures use ids like 'r_test01' with
+  // underscores, and the route layer should pass whatever Express's :id
+  // param accepts -- the regex's job is to differentiate this from /recipes
+  // (the index page) and to capture the segment, NOT to validate the id
+  // charset (RESEARCH Pitfall 1).
+  const recipeMatch = currentUrl.match(/^[^?#]*\/recipes\/([^/?#]+)/);
   if (recipeMatch) {
     const recipeId = recipeMatch[1];
     const recipe = (state.recipes || []).find(r => r.id === recipeId);

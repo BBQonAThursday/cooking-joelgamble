@@ -225,3 +225,213 @@ test('GET /library/cancel-fix is NOT swallowed by GET /library/:id (route order)
   assert.strictEqual(res.status, 400);
   assert.strictEqual(res.body, 'Unknown surface');
 });
+
+// ====== POST /library/:id/categories ======
+
+test('POST /library/:id/categories saves curated:true and sets Saved categories toast', async () => {
+  seedLibrary([makeEntry({ id: 'lb_test01', curated: false, recipeCategory: 'Veg', groceryCategory: 'Produce' })]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library/lb_test01/categories',
+    headers: { 'hx-current-url': 'http://127.0.0.1:3003/library' },
+    body: { recipeCategory: 'Protein', groceryCategory: 'Meat', surfaceItemId: 'library-lb_test01', surface: 'library' }
+  });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.headers['x-status-toast'], 'Saved categories');
+  const state = storage.get();
+  const entry = state.library.find(e => e.id === 'lb_test01');
+  assert.strictEqual(entry.recipeCategory, 'Protein');
+  assert.strictEqual(entry.groceryCategory, 'Meat');
+  assert.strictEqual(entry.curated, true);
+});
+
+test('POST /library/:id/categories from /grocery returns OOB grocery-list fragment', async () => {
+  seedLibrary([makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'] })]);
+  seedGrocery([{ id: 'g_xyz', text: 'apple', checked: false }]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library/lb_apple01/categories',
+    headers: { 'hx-current-url': 'http://127.0.0.1:3003/grocery' },
+    body: { recipeCategory: 'Protein', groceryCategory: 'Meat', surfaceItemId: 'grocery-item-g_xyz', surface: 'grocery', itemId: 'g_xyz' }
+  });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /id="grocery-list"/);
+  assert.match(res.body, /hx-swap-oob="true"/);
+  assert.strictEqual(res.headers['x-status-toast'], 'Saved categories');
+});
+
+test('POST /library/:id/categories from /recipes/:id returns OOB recipe-ingredient-groups fragment', async () => {
+  seedLibrary([makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'] })]);
+  seedRecipes([{
+    id: 'r_test01',
+    title: 'T',
+    sourceUrl: 'https://x.test/r',
+    ingredients: ['1 apple'],
+    instructions: [],
+    imageUrl: '',
+    totalMinutes: 0,
+    servings: '1',
+    addedAt: new Date().toISOString()
+  }]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library/lb_apple01/categories',
+    headers: { 'hx-current-url': 'http://127.0.0.1:3003/recipes/r_test01' },
+    body: { recipeCategory: 'Veg', groceryCategory: 'Produce', surfaceItemId: 'recipe-r_test01-0', surface: 'recipe', recipeId: 'r_test01', index: '0' }
+  });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /id="recipe-ingredient-groups-r_test01"/);
+  assert.match(res.body, /hx-swap-oob="true"/);
+  assert.strictEqual(res.headers['x-status-toast'], 'Saved categories');
+});
+
+test('POST /library/:id/categories from /library returns row fragment + OOB footer', async () => {
+  seedLibrary([makeEntry({ id: 'lb_test01' })]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library/lb_test01/categories',
+    headers: { 'hx-current-url': 'http://127.0.0.1:3003/library' },
+    body: { recipeCategory: 'Protein', groceryCategory: 'Meat' }
+  });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /id="library-row-lb_test01"/);
+  assert.match(res.body, /id="library-footer"/);
+  assert.match(res.body, /hx-swap-oob="true"/);
+});
+
+test('POST /library/:id/categories returns 400 + Fix editor fragment on invalid recipeCategory', async () => {
+  seedLibrary([makeEntry({ id: 'lb_test01' })]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library/lb_test01/categories',
+    headers: { 'hx-current-url': 'http://127.0.0.1:3003/grocery' },
+    body: { recipeCategory: 'BadCategory', groceryCategory: 'Produce', surfaceItemId: 'grocery-item-g_xyz', surface: 'grocery', itemId: 'g_xyz' }
+  });
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body, /class="library-fix-editor"/);
+  assert.ok(!res.headers['x-status-toast'], 'No toast on 400');
+});
+
+test('POST /library/:id/categories returns 400 + Fix editor fragment on invalid groceryCategory', async () => {
+  seedLibrary([makeEntry({ id: 'lb_test01' })]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library/lb_test01/categories',
+    body: { recipeCategory: 'Veg', groceryCategory: 'NotARealCategory' }
+  });
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body, /class="library-fix-editor"/);
+  assert.ok(!res.headers['x-status-toast']);
+});
+
+test('POST /library/:id/categories returns 404 on unknown id', async () => {
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library/lb_nonexistent/categories',
+    body: { recipeCategory: 'Veg', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 404);
+  assert.strictEqual(res.body, 'Not found');
+  assert.ok(!res.headers['x-status-toast']);
+});
+
+// ====== POST /library (Categorize-mode branch) ======
+
+test('POST /library Categorize success from /grocery creates entry with curated:true and OOB-swaps grocery-list', async () => {
+  seedGrocery([{ id: 'g_abc', text: 'mango', checked: false }]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library',
+    headers: { 'hx-current-url': 'http://127.0.0.1:3003/grocery' },
+    body: { name: 'mango', recipeCategory: 'Veg', groceryCategory: 'Produce', surfaceItemId: 'grocery-item-g_abc', surface: 'grocery', itemId: 'g_abc' }
+  });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /id="grocery-list"/);
+  assert.match(res.body, /hx-swap-oob="true"/);
+  assert.strictEqual(res.headers['x-status-toast'], 'Added entry');
+  const newState = storage.get();
+  const entry = newState.library.find(e => e.name === 'mango');
+  assert.ok(entry, 'mango entry created');
+  assert.strictEqual(entry.curated, true);
+});
+
+test('POST /library Categorize 400 on case-insensitive name conflict', async () => {
+  seedLibrary([makeEntry({ id: 'lb_apple01', name: 'apple', aliases: [] })]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library',
+    headers: { 'hx-current-url': 'http://127.0.0.1:3003/grocery' },
+    body: { name: 'APPLE', recipeCategory: 'Veg', groceryCategory: 'Produce', surfaceItemId: 'grocery-item-g_abc', surface: 'grocery', itemId: 'g_abc' }
+  });
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body, /class="library-categorize-editor"/);
+  assert.match(res.body, /class="library-categorize-error"/);
+  // Conflict message includes the typed name and the colliding entry name
+  // (Nunjucks autoescape emits " as &#34; or &quot; depending on version).
+  assert.match(res.body, /Name (&#34;|&quot;|")APPLE(&#34;|&quot;|") is already used by entry (&#34;|&quot;|")apple(&#34;|&quot;|")/);
+  assert.match(res.body, /value="APPLE"/);
+  assert.ok(!res.headers['x-status-toast'], 'No toast on 400');
+});
+
+test('POST /library Categorize 400 on alias conflict (name matches an existing alias)', async () => {
+  seedLibrary([makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apples'] })]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library',
+    headers: { 'hx-current-url': 'http://127.0.0.1:3003/grocery' },
+    body: { name: 'apples', recipeCategory: 'Veg', groceryCategory: 'Produce', surfaceItemId: 'grocery-item-g_abc', surface: 'grocery', itemId: 'g_abc' }
+  });
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body, /class="library-categorize-editor"/);
+  assert.match(res.body, /class="library-categorize-error"/);
+  assert.match(res.body, /already used by entry/);
+  assert.match(res.body, /value="apples"/);
+  assert.ok(!res.headers['x-status-toast']);
+});
+
+test('POST /library Categorize from /recipes/:id returns OOB recipe-ingredient-groups fragment', async () => {
+  seedRecipes([{
+    id: 'r_test01',
+    title: 'T',
+    sourceUrl: 'https://x.test/r',
+    ingredients: ['1 zzunknown'],
+    instructions: [],
+    imageUrl: '',
+    totalMinutes: 0,
+    servings: '1',
+    addedAt: new Date().toISOString()
+  }]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library',
+    headers: { 'hx-current-url': 'http://127.0.0.1:3003/recipes/r_test01' },
+    body: { name: 'zzunknown', recipeCategory: 'Other', groceryCategory: 'Other', surfaceItemId: 'recipe-r_test01-0', surface: 'recipe', recipeId: 'r_test01', index: '0' }
+  });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /id="recipe-ingredient-groups-r_test01"/);
+  assert.match(res.body, /hx-swap-oob="true"/);
+  assert.strictEqual(res.headers['x-status-toast'], 'Added entry');
+});
+
+test('POST /library WITHOUT surfaceItemId preserves Phase 5 plain-text 400 contract', async () => {
+  // No surfaceItemId in body -> NOT Categorize mode; existing LIB-04 plain-text contract.
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library',
+    body: { name: '', recipeCategory: 'Veg', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 400);
+  assert.strictEqual(res.body, 'Name required');
+});
+
+test('POST /library WITHOUT surfaceItemId preserves Phase 5 respondWithUpdates(library-panel) success shape', async () => {
+  // No surfaceItemId, no HX-Current-URL: existing Phase 5 path (full library-panel re-render).
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library',
+    body: { name: 'newlib', recipeCategory: 'Veg', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /id="library-panel"/);
+  assert.strictEqual(res.headers['x-status-toast'], 'Added entry');
+});
