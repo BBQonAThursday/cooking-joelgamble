@@ -178,3 +178,45 @@ test('GET /recipes/:id renders ingredients grouped by category', async () => {
   assert.match(res.body, />1 tsp salt</);
   assert.match(res.body, />2 tbsp olive oil</);
 });
+
+// ----- Phase 4 / EXTR-01 / SC#1: POST auto-extract hook ---------------------
+
+test('POST /recipes seeds state.library via auto-extract hook (SC#1a)', async () => {
+  const res = await helpers.request(ctx.port, {
+    method: 'POST', path: '/recipes',
+    body: { url: 'https://example.com/extr-1' }
+  });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.headers['x-status-toast'] || '', /Saved:/);
+  const storage = require('../lib/storage');
+  const state = storage.get();
+  assert.ok(state.library.length >= 1, 'POST hook should have seeded at least one library entry');
+});
+
+test('POST /recipes second save with same URL does NOT regrow library (SC#1b)', async () => {
+  await helpers.request(ctx.port, { method: 'POST', path: '/recipes', body: { url: 'https://example.com/extr-2' } });
+  const storage = require('../lib/storage');
+  const lengthAfterFirst = storage.get().library.length;
+  assert.ok(lengthAfterFirst >= 1, 'first POST should seed at least one entry');
+
+  await helpers.request(ctx.port, { method: 'POST', path: '/recipes', body: { url: 'https://example.com/extr-2' } });
+  assert.strictEqual(storage.get().library.length, lengthAfterFirst, 'library count must be stable on re-save (library-first match; no second save)');
+});
+
+test('POST /recipes still saves and toasts Saved when extractAndSeed throws (D-48)', async () => {
+  const libraryMod = require('../lib/library');
+  const originalExtractAndSeed = libraryMod.extractAndSeed;
+  libraryMod.extractAndSeed = () => { throw new Error('forced failure for test'); };
+  try {
+    const res = await helpers.request(ctx.port, {
+      method: 'POST', path: '/recipes',
+      body: { url: 'https://example.com/throw-test' }
+    });
+    assert.strictEqual(res.status, 200);
+    assert.match(res.headers['x-status-toast'] || '', /Saved: Stub Recipe throw-test/);
+    const list = await helpers.request(ctx.port, { path: '/' });
+    assert.match(list.body, /Stub Recipe throw-test/);
+  } finally {
+    libraryMod.extractAndSeed = originalExtractAndSeed;
+  }
+});
