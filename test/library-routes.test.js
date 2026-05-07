@@ -170,4 +170,134 @@ test('GET /library page does not contain nav tab <a href="/library"> (atomic-tab
   assert.doesNotMatch(res.body, /<a[^>]*href="\/library"[^>]*class="tab/);
 });
 
+// Plan 03: GET /library/:id (read-only fragment) tests
+
+test('GET /library/:id returns ONLY the row fragment (no full page)', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const entry = newLibraryEntry({ name: 'apple', aliases: ['apples'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true });
+  seedLibrary([entry]);
+  const res = await helpers.request(ctx.port, { path: `/library/${entry.id}` });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /^<li id="library-row-/);
+  assert.doesNotMatch(res.body, /<html/);
+  assert.doesNotMatch(res.body, /class="tabs"/);
+});
+
+test('GET /library/:id 404s for unknown id', async () => {
+  const res = await helpers.request(ctx.port, { path: '/library/lb_nope' });
+  assert.strictEqual(res.status, 404);
+  assert.strictEqual(res.body, 'Not found');
+});
+
+test('GET /library/:id includes [unused] badge when no recipe references the entry', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const entry = newLibraryEntry({ name: 'parsnip', aliases: [], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true });
+  seedLibrary([entry]);
+  // No recipes seeded -- parsnip is unused
+  const res = await helpers.request(ctx.port, { path: `/library/${entry.id}` });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /\[unused\]/);
+});
+
+// Plan 03: GET /library/:id/edit (edit form fragment) tests
+
+test('GET /library/:id/edit returns the edit form fragment', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const entry = newLibraryEntry({ name: 'tomato', aliases: ['tomatoes'], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true });
+  seedLibrary([entry]);
+  const res = await helpers.request(ctx.port, { path: `/library/${entry.id}/edit` });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /<form/);
+  assert.match(res.body, /name="name"/);
+  assert.match(res.body, /name="aliases"/);
+  assert.match(res.body, /<select name="recipeCategory">/);
+  assert.match(res.body, /<select name="groceryCategory">/);
+  assert.match(res.body, /value="tomato"/);
+  assert.doesNotMatch(res.body, /<html/);
+});
+
+test('GET /library/:id/edit pre-selects the current category in the select', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const entry = newLibraryEntry({ name: 'broccoli', aliases: [], recipeCategory: 'Veg', groceryCategory: 'Produce', curated: true });
+  seedLibrary([entry]);
+  const res = await helpers.request(ctx.port, { path: `/library/${entry.id}/edit` });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /<option value="Veg"\s*selected/);
+  assert.match(res.body, /<option value="Produce"\s*selected/);
+});
+
+test('GET /library/:id/edit 404s for unknown id', async () => {
+  const res = await helpers.request(ctx.port, { path: '/library/lb_nope/edit' });
+  assert.strictEqual(res.status, 404);
+});
+
+// Plan 03: POST /library (manual create) tests
+
+test('POST /library creates an entry with curated:true and OOB-swaps the panel', async () => {
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library',
+    body: { name: 'tomato', aliases: 'tomatoes, roma', recipeCategory: 'Veg', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /id="library-panel"/);
+  assert.match(res.body, /hx-swap-oob="true"/);
+  assert.match(res.body, />tomato</);
+  assert.strictEqual(res.headers['x-status-toast'], 'Added entry');
+  // Verify [curated] badge appears (not [uncurated])
+  const rowStart = res.body.indexOf('id="library-panel"');
+  assert.ok(rowStart > -1, 'library-panel not found in body');
+  assert.match(res.body, /\[curated\]/);
+  assert.doesNotMatch(res.body, /\[uncurated\]/);
+});
+
+test('POST /library 400s on missing name', async () => {
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library',
+    body: { name: '   ', aliases: '', recipeCategory: 'Veg', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body, /Name required/);
+});
+
+test('POST /library 400s on invalid recipeCategory', async () => {
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library',
+    body: { name: 'thing', aliases: '', recipeCategory: 'Hax', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body, /Invalid recipe category/);
+});
+
+test('POST /library 400s on alias conflict', async () => {
+  const { newLibraryEntry } = require('../lib/library');
+  const existing = newLibraryEntry({ name: 'garlic clove', aliases: ['garlic'], recipeCategory: 'Seasoning', groceryCategory: 'Produce', curated: true });
+  seedLibrary([existing]);
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library',
+    body: { name: 'minced garlic', aliases: 'garlic', recipeCategory: 'Seasoning', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body, /Alias 'garlic'/);
+  assert.match(res.body, /garlic clove/);
+  // State must not have the second entry
+  const state = storage.get();
+  assert.strictEqual(state.library.length, 1, 'rejected entry must not be persisted');
+});
+
+test('POST /library dedupes aliases on submit', async () => {
+  const res = await helpers.request(ctx.port, {
+    method: 'POST',
+    path: '/library',
+    body: { name: 'thing', aliases: 'a, a, b, , b ', recipeCategory: 'Veg', groceryCategory: 'Produce' }
+  });
+  assert.strictEqual(res.status, 200);
+  // The rendered aliases display should be 'a, b' (not 'a, a, b, , b')
+  assert.match(res.body, /a, b/);
+  assert.doesNotMatch(res.body, /a, a/);
+});
+
 module.exports = { addLibraryEntry };
