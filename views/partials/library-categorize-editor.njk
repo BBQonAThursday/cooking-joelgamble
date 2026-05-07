@@ -1,0 +1,48 @@
+<li id="library-categorize-{{ surfaceItemId }}" class="library-categorize-editor">
+  <div class="library-categorize-header">New library entry</div>
+  <form class="library-categorize-form"
+        hx-post="/library"
+        hx-target="#library-categorize-{{ surfaceItemId }}"
+        hx-swap="outerHTML">
+    <input type="hidden" name="surfaceItemId" value="{{ surfaceItemId }}">
+    <input type="hidden" name="surface" value="{{ surface }}">
+    <input type="hidden" name="itemId" value="{{ itemId }}">
+    {% if recipeId %}<input type="hidden" name="recipeId" value="{{ recipeId }}">{% endif %}
+    {% if index or index == 0 %}<input type="hidden" name="index" value="{{ index }}">{% endif %}
+    <div class="library-categorize-field">
+      <label for="library-categorize-name-{{ surfaceItemId }}">Name</label>
+      <input type="text"
+             id="library-categorize-name-{{ surfaceItemId }}"
+             name="name"
+             value="{{ prefilledName }}"
+             required
+             maxlength="200"
+             autocomplete="off"
+             autofocus>
+      {% if categorizeError %}
+        <div class="library-categorize-error" role="alert">{{ categorizeError }}</div>
+      {% endif %}
+    </div>
+    <div class="library-categorize-fields">
+      <div class="library-categorize-field">
+        <label for="library-categorize-recipe-{{ surfaceItemId }}">Recipe category</label>
+        <select id="library-categorize-recipe-{{ surfaceItemId }}" name="recipeCategory">
+          {% for cat in RECIPE_CATEGORIES %}<option value="{{ cat }}"{% if cat == prefilledRecipeCategory %} selected{% endif %}>{{ cat }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="library-categorize-field">
+        <label for="library-categorize-grocery-{{ surfaceItemId }}">Grocery category</label>
+        <select id="library-categorize-grocery-{{ surfaceItemId }}" name="groceryCategory">
+          {% for cat in GROCERY_CATEGORIES %}<option value="{{ cat }}"{% if cat == prefilledGroceryCategory %} selected{% endif %}>{{ cat }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="library-categorize-actions">
+      <button type="submit" class="library-categorize-save">Save</button>
+      <button type="button" class="library-categorize-cancel"
+              hx-get="/library/cancel-fix?surface={{ surface }}&itemId={{ itemId }}{% if recipeId %}&recipeId={{ recipeId }}&index={{ index }}{% endif %}"
+              hx-target="#library-categorize-{{ surfaceItemId }}"
+              hx-swap="outerHTML">Cancel</button>
+    </div>
+  </form>
+</li>

@@ -1,0 +1,37 @@
+<li id="library-fix-{{ surfaceItemId }}" class="library-fix-editor">
+  <div class="library-fix-header">
+    <span>Library entry: <strong>{{ entry.name }}</strong></span>
+    <a class="library-fix-link" href="/library?q={{ entry.name|urlencode }}">Edit full entry &rarr;</a>
+  </div>
+  <form class="library-fix-form"
+        hx-post="/library/{{ entry.id }}/categories"
+        hx-target="#library-fix-{{ surfaceItemId }}"
+        hx-swap="outerHTML">
+    <input type="hidden" name="surfaceItemId" value="{{ surfaceItemId }}">
+    <input type="hidden" name="surface" value="{{ surface }}">
+    <input type="hidden" name="itemId" value="{{ itemId }}">
+    {% if recipeId %}<input type="hidden" name="recipeId" value="{{ recipeId }}">{% endif %}
+    {% if index or index == 0 %}<input type="hidden" name="index" value="{{ index }}">{% endif %}
+    <div class="library-fix-fields">
+      <div class="library-fix-field">
+        <label for="library-fix-recipe-{{ surfaceItemId }}">Recipe category</label>
+        <select id="library-fix-recipe-{{ surfaceItemId }}" name="recipeCategory" autofocus>
+          {% for cat in RECIPE_CATEGORIES %}<option value="{{ cat }}"{% if cat == entry.recipeCategory %} selected{% endif %}>{{ cat }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="library-fix-field">
+        <label for="library-fix-grocery-{{ surfaceItemId }}">Grocery category</label>
+        <select id="library-fix-grocery-{{ surfaceItemId }}" name="groceryCategory">
+          {% for cat in GROCERY_CATEGORIES %}<option value="{{ cat }}"{% if cat == entry.groceryCategory %} selected{% endif %}>{{ cat }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="library-fix-actions">
+      <button type="submit" class="library-fix-save">Save</button>
+      <button type="button" class="library-fix-cancel"
+              hx-get="/library/cancel-fix?surface={{ surface }}&itemId={{ itemId }}{% if recipeId %}&recipeId={{ recipeId }}&index={{ index }}{% endif %}"
+              hx-target="#library-fix-{{ surfaceItemId }}"
+              hx-swap="outerHTML">Cancel</button>
+    </div>
+  </form>
+</li>
