@@ -33,7 +33,7 @@
 - [ ] **LIB-02**: `GET /library` renders the page: full entry list (default filter "all"), search box (substring match across name + aliases), filter buttons "All" / "Uncurated" / "Unused", per-entry "edit" affordance (opens inline edit row).
 - [ ] **LIB-03**: Each entry row shows canonical name, aliases (comma-joined), recipe category, grocery category, curated indicator, "unused" badge if no recipe currently references any of its aliases. Unused state computed at render time.
 - [ ] **LIB-04**: `POST /library` (or button on the Library tab) creates a new entry manually. Form fields: canonical name (required), aliases (optional comma-separated), recipe category, grocery category. `curated: true` on manual creation.
-- [ ] **LIB-05**: `PATCH /library/:id` (or `POST /library/:id` accepting `_method=PATCH`) updates an existing entry. Validates aliases against `aliasConflict`. Sets `curated: true` when an uncurated entry is edited. OOB-swap re-renders the affected row.
+- [x] **LIB-05**: `PATCH /library/:id` (or `POST /library/:id` accepting `_method=PATCH`) updates an existing entry. Validates aliases against `aliasConflict`. Sets `curated: true` when an uncurated entry is edited. OOB-swap re-renders the affected row. *(Closed by Plan 05-04 — commits cb770db, a99ac44.)*
 - [ ] **LIB-06**: `DELETE /library/:id` removes an entry. Does not mutate any `state.recipes[].ingredients[]`. Categorization gracefully falls back to heuristic for previously-matched strings. OOB-swap removes the row.
 
 ### Inline Fix (FIX)
@@ -91,7 +91,7 @@ These are anti-features captured during research and decision-making. Reasoning 
 | LIB-02 | Phase 5 | |
 | LIB-03 | Phase 5 | |
 | LIB-04 | Phase 5 | |
-| LIB-05 | Phase 5 | |
+| LIB-05 | Phase 5 | Closed by Plan 05-04 (POST /library/:id; compound row+OOB-footer; curated:true forced) |
 | LIB-06 | Phase 5 | |
 | FIX-01 | Phase 6 | Requires Phase 5 routes |
 | FIX-02 | Phase 6 | |

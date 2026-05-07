@@ -119,7 +119,7 @@ Plans:
 - [x] 05-03-PLAN.md — GET /library/:id (read-only row fragment for Cancel) + GET /library/:id/edit (edit-form fragment) + POST /library (manual-add); views/partials/library-row-edit.njk; closes LIB-04
 
 **Wave 3** *(blocked on Wave 2)*
-- [ ] 05-04-PLAN.md — POST /library/:id (edit save); compound row + OOB-footer response on 200; edit-form fragment with inline aliasError on 400 (D-61); curated:true forced on save; closes LIB-05
+- [x] 05-04-PLAN.md — POST /library/:id (edit save); compound row + OOB-footer response on 200; edit-form fragment with inline aliasError on 400 (D-61); curated:true forced on save; closes LIB-05
 
 **Wave 4** *(blocked on Wave 3)*
 - [ ] 05-05-PLAN.md — DELETE /library/:id; row-removal + OOB-footer compound response; explicit recipes-untouched regression test (LIB-06 invariant); closes LIB-06
@@ -150,7 +150,7 @@ Plans:
 | 2. Library Helpers | 0/3 | Planned | - |
 | 3. Categorization Layering | 3/3 | Complete | 2026-05-06 |
 | 4. Auto-Extract & Backfill | 3/3 | Complete | 2026-05-07 |
-| 5. Library Tab | 2/6 | Executing | - |
+| 5. Library Tab | 4/6 | Executing | - |
 | 6. Inline Fix | 0/? | Not started | - |
 
 ---

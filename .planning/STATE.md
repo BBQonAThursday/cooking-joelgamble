@@ -8,8 +8,8 @@ progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 16
-  completed_plans: 13
-  percent: 81
+  completed_plans: 14
+  percent: 88
 ---
 
 # Project State — Ingredient Library
@@ -33,9 +33,9 @@ Phase: 05 (library-tab) — EXECUTING
 Plan: 4 of 6
 | Field | Value |
 |-------|-------|
-| **Phase** | 5 — Library Tab — executing (3/6 plans complete) |
-| **Plan** | 05-03 complete (GET /library/:id, GET /library/:id/edit, POST /library manual-add, library-row-edit.njk, 11 new tests). Next: 05-04 (POST /library/:id inline edit-save). |
-| **Status** | All 6 phases mapped. Phases 1-4 complete (10/10 plans). 05-01, 05-02, 05-03 complete. 333/333 tests passing. LIB-04 closed. |
+| **Phase** | 5 — Library Tab — executing (4/6 plans complete) |
+| **Plan** | 05-04 complete (POST /library/:id save handler, 9 new tests, LIB-05 closed). Next: 05-05 (DELETE /library/:id). |
+| **Status** | All 6 phases mapped. Phases 1-4 complete (10/10 plans). 05-01, 05-02, 05-03, 05-04 complete. 342/342 tests passing. LIB-04 + LIB-05 closed. |
 | **Blocking** | Nothing |
 
 **Progress:**
@@ -45,10 +45,10 @@ Phase 1 [##########] 100%
 Phase 2 [##########] 100%
 Phase 3 [##########] 100%
 Phase 4 [##########] 100%
-Phase 5 [###       ] 50%
+Phase 5 [######    ] 67%
 Phase 6 [          ] 0%
 
-Milestone [#########  ] 81%
+Milestone [##########] 88%
 ```
 
 ---
@@ -66,6 +66,10 @@ Milestone [#########  ] 81%
 | Phase 4 tests added | 13 (10 backfill + 3 SC#1 in recipes.test.js) |
 | Phase 4 commits | 9 (3 RED + 3 GREEN + 3 SUMMARY) |
 | Test suite | 333/333 passing |
+| Plan 05-04 duration | ~20 min |
+| Plan 05-04 tasks | 2 |
+| Plan 05-04 files modified | 2 |
+| Plan 05-04 tests added | 9 |
 | Plan 05-03 duration | ~15 min |
 | Plan 05-03 tasks | 4 |
 | Plan 05-03 files modified | 3 |
@@ -86,6 +90,7 @@ Milestone [#########  ] 81%
 
 ### Key Decisions Locked In
 
+- **Plan 05-04 closures (2026-05-07):** POST /library/:id save endpoint closed LIB-05. 200 path: compound row+OOB-footer via renderSync+injectOob (NOT respondWithUpdates -- avoids hx-swap-oob on row). 400 path: edit-form fragment with user-typed values preserved + inline aliasError; no toast (D-61). 404 path: plain text. aliasConflict called with excludingId so self-alias re-submit does not false-positive. curated:true forced via ELS spread on every save. setToast('Saved entry') only on 200 (D-67). 9 new HTTP tests; total 342/342 passing. Deviation: test regex patterns use (&#39;|') alternation because Nunjucks autoescape converts single quotes to &#39; in rendered HTML.
 - **Plan 05-03 closures (2026-05-07):** GET /library/:id + GET /library/:id/edit return ONLY row fragments via renderSync (not respondWithUpdates -- avoids OOB corruption of HTMX outerHTML primary swap target). POST /library creates entries with curated:true; alias-conflict checked per-alias via aliasConflict(); aliases parsed: split on comma, trim, dedupe via Set. Toast 'Added entry' (verb-only, ASCII-safe). Full panel re-render on success via respondWithUpdates (D-67 Discretion). entryViewById helper reuses buildLibraryView for consistent decoration. views/partials/library-row-edit.njk shares outer id="library-row-{{ entry.id }}" with library-row.njk for bidirectional HTMX outerHTML toggle. Cancel button type=button with hx-get="/library/:id". LIB-04 closed. 333/333 tests passing (+11 new HTTP tests).
 - **Plan 05-02 closures (2026-05-07):** buildLibraryView added to lib/calc.js — per-render recipe walk (D-66): buildLibraryIndex + findEntryInIndex + seen Set per recipe (prevents double-count). Alphabetical sort via localeCompare (D-55). Filter + search AND-combined (D-56). Entry decoration: aliasesDisplay, recipeCount, unused, deleteConfirm (singular/plural). unusedCount over full library (not filtered slice). routes/library.js created with GET /library; mounts in server.js after history route. Template hierarchy: library.njk -> library-panel.njk (#library-panel OOB target) -> library-row.njk (id=library-row-{{ entry.id }}). Debounced search hx-trigger=keyup changed delay:300ms; hx-include=[name='filter'] preserves filter state; hx-push-url=true (D-57/D-58). Two empty-state branches (D-59). CSS block library-* appended to styles.css. 322/322 tests passing (+13 unit buildLibraryView + +10 GET /library HTTP). LIB-02 + LIB-03 closed. No nav tab added (atomic-tab-launch invariant preserved).
 - **Plan 05-01 closures (2026-05-07):** Wave 0 prerequisites complete. renderSync added to lib/render.js module.exports (was already defined at line 14-17, just not exported). views/partials/library-footer.njk created with stable id="library-footer", unusedCount 0/1/plural branches, no hx-swap-oob (added at runtime by injectOob). views/layout.njk gains htmx-config meta tag: responseHandling with code:400 swap:true rule placed BEFORE [45].. catch-all (first-match wins); 400 omits error:true per D-61 silent-toast-on-conflict; no nav tab added (Wave 5 atomic-tab-launch invariant). test/library-routes.test.js scaffold created with beforeEach/afterEach, addLibraryEntry helper, and Wave 0 healthz smoke (1 pass). test/calc.test.js extended with buildLibraryView destructure and Phase 5 smoke test that skips when undefined (pending Plan 02). 298/299 tests passing (1 intentional skip).
@@ -140,10 +145,10 @@ None.
 
 ## Session Continuity
 
-**To resume:** Read `ROADMAP.md` for phase goals. Phase 5 is EXECUTING — Plans 05-01, 05-02, 05-03 complete. GET /library live; GET /library/:id + GET /library/:id/edit fragment routes live; POST /library manual-add live (LIB-04 closed); library-row-edit.njk created; 333/333 tests passing.
+**To resume:** Read `ROADMAP.md` for phase goals. Phase 5 is EXECUTING — Plans 05-01 through 05-04 complete. POST /library/:id live (LIB-05 closed); 342/342 tests passing.
 
 **Last session:** 2026-05-07
 
-**Stopped at:** Completed 05-03-PLAN.md
+**Stopped at:** Completed 05-04-PLAN.md
 
-**Next action:** Execute `05-04-PLAN.md` — POST /library/:id inline edit-save endpoint (Save button wires to this); alias-conflict inline error path via 400 HTML fragment; closes LIB-05.
+**Next action:** Execute `05-05-PLAN.md` — DELETE /library/:id route; row-removal + OOB-footer compound response; closes LIB-06.
