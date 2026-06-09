@@ -155,6 +155,7 @@ None.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260609-k14 | Add a per-recipe ingredient view toggle on the recipe detail page | 2026-06-09 | 62f8644 | [260609-k14-add-a-per-recipe-ingredient-view-toggle-](./quick/260609-k14-add-a-per-recipe-ingredient-view-toggle-/) |
+| 260609-nph | Extract and display source ingredient sub-headers (WPRM) in the original recipe view | 2026-06-09 | 7aa2016 | [260609-nph-extract-and-display-source-ingredient-su](./quick/260609-nph-extract-and-display-source-ingredient-su/) |
 
 ---
 
@@ -162,7 +163,7 @@ None.
 
 **To resume:** Milestone v1.0 (Ingredient Library) is COMPLETE. All 6 phases / 21 plans shipped. 401/401 tests passing. All 21 requirements closed (FND-01..04, EXTR-01..04, MATCH-01..03, LIB-01..06, FIX-01..04). One deferred enhancement on the runway: D-76 alt #2 (auto-add item text as alias on Categorize) — see 06-VERIFICATION.md.
 
-**Last activity:** 2026-06-09 - Completed quick task 260609-k14: Add a per-recipe ingredient view toggle on the recipe detail page
+**Last activity:** 2026-06-09 - Completed quick task 260609-nph: Extract and display source ingredient sub-headers (WPRM) in the original recipe view (5/15 recipes backfilled with sections)
 
 **Last session:** 2026-05-07T18:45:00.000Z
 
