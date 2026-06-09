@@ -1,0 +1,5 @@
+{% if recipe.viewMode == 'processed' %}
+  {% include "partials/recipe-ingredient-groups.njk" %}
+{% else %}
+  {% include "partials/recipe-ingredient-original.njk" %}
+{% endif %}

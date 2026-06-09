@@ -1,0 +1,9 @@
+<ul class="recipe-ingredients-original">
+  {% for ing in recipe.ingredients %}
+    <li class="recipe-ingredient-line">
+      <span class="recipe-ingredient-text">{{ ing }}</span>
+    </li>
+  {% else %}
+    <p class="empty">No ingredients found.</p>
+  {% endfor %}
+</ul>

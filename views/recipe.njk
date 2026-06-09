@@ -17,8 +17,13 @@
     </p>
     <div class="recipe-body">
       <section class="recipe-ingredients" id="recipe-ingredient-groups-{{ recipe.id }}">
-        <h2>Ingredients</h2>
-        {% include "partials/recipe-ingredient-groups.njk" %}
+        <div class="recipe-ingredients-head">
+          <h2>Ingredients</h2>
+          {% include "partials/ingredient-view-toggle.njk" %}
+        </div>
+        <div id="recipe-ingredients-body-{{ recipe.id }}">
+          {% include "partials/recipe-ingredients-body.njk" %}
+        </div>
       </section>
       <section class="recipe-instructions">
         <h2>Instructions</h2>

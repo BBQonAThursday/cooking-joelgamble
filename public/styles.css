@@ -638,3 +638,31 @@ a:hover { text-decoration: underline; }
   .library-fix-field,
   .library-categorize-field { min-width: 0; }
 }
+
+/* Ingredient view toggle */
+.recipe-ingredients-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.recipe-ingredients-head h2 { margin: 0; }
+.ingredient-view-toggle {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: var(--radius);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ingredient-view-toggle:hover { color: var(--fg); border-color: var(--fg); }
+
+/* Original (flat) ingredient list -- match categorized list spacing */
+.recipe-ingredients-original {
+  list-style: none;
+  padding-left: 0;
+  margin: 0 0 8px;
+}

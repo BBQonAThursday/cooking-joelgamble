@@ -1,0 +1,5 @@
+<button class="ingredient-view-toggle"
+        id="ingredient-view-toggle-{{ recipe.id }}"
+        hx-post="/recipes/{{ recipe.id }}/view"
+        hx-target="#recipe-ingredients-body-{{ recipe.id }}"
+        hx-swap="innerHTML">{% if recipe.viewMode == 'processed' %}Show original{% else %}Show categorized{% endif %}</button>
