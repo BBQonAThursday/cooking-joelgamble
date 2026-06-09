@@ -366,6 +366,16 @@ a:hover { text-decoration: underline; }
 }
 .ingredient-category:first-child { margin-top: 0; }
 
+/* Original view source sub-headers (WPRM ingredient sections) */
+.ingredient-section {
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 12px 0 4px;
+  letter-spacing: 0.05em;
+}
+.ingredient-section:first-child { margin-top: 0; }
+
 /* Grocery category groups */
 .grocery-group { padding: 8px 0; border-bottom: 1px solid var(--border); }
 .grocery-group:last-of-type { border-bottom: none; }

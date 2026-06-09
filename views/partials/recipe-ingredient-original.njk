@@ -1,9 +1,22 @@
-<ul class="recipe-ingredients-original">
-  {% for ing in recipe.ingredients %}
-    <li class="recipe-ingredient-line">
-      <span class="recipe-ingredient-text">{{ ing }}</span>
-    </li>
-  {% else %}
-    <p class="empty">No ingredients found.</p>
+{% if recipe.ingredientSections and recipe.ingredientSections.length > 0 %}
+  {% for section in recipe.ingredientSections %}
+    {% if section.heading %}<h3 class="ingredient-section">{{ section.heading }}</h3>{% endif %}
+    <ul class="recipe-ingredients-original">
+      {% for ing in section.items %}
+        <li class="recipe-ingredient-line">
+          <span class="recipe-ingredient-text">{{ ing }}</span>
+        </li>
+      {% endfor %}
+    </ul>
   {% endfor %}
-</ul>
+{% else %}
+  <ul class="recipe-ingredients-original">
+    {% for ing in recipe.ingredients %}
+      <li class="recipe-ingredient-line">
+        <span class="recipe-ingredient-text">{{ ing }}</span>
+      </li>
+    {% else %}
+      <p class="empty">No ingredients found.</p>
+    {% endfor %}
+  </ul>
+{% endif %}

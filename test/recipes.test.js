@@ -452,3 +452,65 @@ test('POST /recipes/:id/view returns OOB toggle with updated label', async () =>
   assert.match(res.body, /hx-swap-oob="true"/);
   assert.match(res.body, /Show original/);
 });
+
+// ----- quick-260609-nph: ingredientSections Original view template tests -----
+
+test('GET /recipes/:id with ingredientSections renders section headers in original view', async () => {
+  const storage = require('../lib/storage');
+  const state = storage.get();
+  state.recipes = [makeRecipe({
+    id: 'r_sections01',
+    ingredients: ['2 cups flour', '1 can tomatoes'],
+    ingredientSections: [
+      { heading: 'For the dough', items: ['2 cups flour'] },
+      { heading: 'For the sauce', items: ['1 can tomatoes'] }
+    ]
+    // viewMode omitted -> defaults to 'original'
+  })];
+  storage.save();
+
+  const res = await helpers.request(ctx.port, { path: '/recipes/r_sections01' });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /<h3 class="ingredient-section">For the dough<\/h3>/);
+  assert.match(res.body, /<h3 class="ingredient-section">For the sauce<\/h3>/);
+  assert.match(res.body, /2 cups flour/);
+  assert.match(res.body, /1 can tomatoes/);
+  // Must NOT have category headers (those are processed-view only).
+  assert.doesNotMatch(res.body, /class="ingredient-category"/);
+  // Must NOT have pencil/edit buttons (original view has no pencils).
+  assert.doesNotMatch(res.body, /class="recipe-pencil"/);
+});
+
+test('GET /recipes/:id without ingredientSections falls back to flat ingredient list', async () => {
+  const storage = require('../lib/storage');
+  const state = storage.get();
+  state.recipes = [makeRecipe({
+    id: 'r_flat01',
+    ingredients: ['salt', 'pepper']
+    // no ingredientSections field
+  })];
+  storage.save();
+
+  const res = await helpers.request(ctx.port, { path: '/recipes/r_flat01' });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /salt/);
+  assert.match(res.body, /pepper/);
+  // No section headers rendered.
+  assert.doesNotMatch(res.body, /class="ingredient-section"/);
+});
+
+test('GET /recipes/:id with ingredientSections=[] and ingredients=[] renders "No ingredients found."', async () => {
+  const storage = require('../lib/storage');
+  const state = storage.get();
+  state.recipes = [makeRecipe({
+    id: 'r_empty01',
+    ingredients: [],
+    ingredientSections: []
+  })];
+  storage.save();
+
+  const res = await helpers.request(ctx.port, { path: '/recipes/r_empty01' });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /No ingredients found\./);
+  assert.doesNotMatch(res.body, /class="ingredient-section"/);
+});
