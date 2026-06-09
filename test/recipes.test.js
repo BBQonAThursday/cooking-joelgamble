@@ -151,6 +151,7 @@ test('GET /recipes/:id renders the tag-toggle next to the title', async () => {
 
 test('GET /recipes/:id renders ingredients grouped by category', async () => {
   // Add a recipe directly to state for richer category coverage.
+  // viewMode must be 'processed' to see category headers (default is 'original').
   const storage = require('../lib/storage');
   const state = storage.get();
   state.recipes.push({
@@ -163,7 +164,8 @@ test('GET /recipes/:id renders ingredients grouped by category', async () => {
     servings: '4',
     totalMinutes: 30,
     ingredients: ['500g chicken', '1 onion', '1 tsp salt', '2 tbsp olive oil'],
-    instructions: ['cook']
+    instructions: ['cook'],
+    viewMode: 'processed'
   });
   storage.save();
 
@@ -271,9 +273,10 @@ test('GET /recipes/:id wraps ingredient section with id="recipe-ingredient-group
 
 test('GET /recipes/:id renders each ingredient line with stable per-line id', async () => {
   const recipeId = 'r_test0001';
+  // viewMode 'processed' required: per-line ids only appear in categorized view.
   seedLibraryAndRecipe(
     makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'] }),
-    makeRecipe({ id: recipeId, ingredients: ['1 apple'] })
+    makeRecipe({ id: recipeId, ingredients: ['1 apple'], viewMode: 'processed' })
   );
   const res = await helpers.request(ctx.port, { path: `/recipes/${recipeId}` });
   assert.strictEqual(res.status, 200);
@@ -282,9 +285,10 @@ test('GET /recipes/:id renders each ingredient line with stable per-line id', as
 
 test('GET /recipes/:id matched ingredient pencil targets /library/:id/categories-edit', async () => {
   const recipeId = 'r_test0001';
+  // viewMode 'processed' required: pencil buttons only appear in categorized view.
   seedLibraryAndRecipe(
     makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'] }),
-    makeRecipe({ id: recipeId, ingredients: ['1 apple'] })
+    makeRecipe({ id: recipeId, ingredients: ['1 apple'], viewMode: 'processed' })
   );
   const res = await helpers.request(ctx.port, { path: `/recipes/${recipeId}` });
   assert.strictEqual(res.status, 200);
@@ -297,7 +301,8 @@ test('GET /recipes/:id unmatched ingredient pencil targets /library/categorize-e
   const state = storage.get();
   state.library = [];
   state.libraryMigratedAt = new Date().toISOString();
-  state.recipes = [makeRecipe({ id: 'r_test0001', ingredients: ['1 zzunknown'] })];
+  // viewMode 'processed' required: pencil buttons only appear in categorized view.
+  state.recipes = [makeRecipe({ id: 'r_test0001', ingredients: ['1 zzunknown'], viewMode: 'processed' })];
   storage.save();
   const res = await helpers.request(ctx.port, { path: '/recipes/r_test0001' });
   assert.strictEqual(res.status, 200);
@@ -320,15 +325,16 @@ test('GET /recipes/:id rendering does not substitute entry.name even after renam
   // Library entry's canonical name is "pomme" but the alias still matches "apple",
   // so the recipe ingredient still resolves to this entry's libraryEntryId — yet
   // the rendered text MUST be the original ing.text, not entry.name.
+  // viewMode 'processed' required: pencil SVG only appears in categorized view.
   seedLibraryAndRecipe(
     makeEntry({ id: 'lb_apple01', name: 'pomme', aliases: ['apple'] }),
-    makeRecipe({ id: recipeId, ingredients: ['1 apple, sliced'] })
+    makeRecipe({ id: recipeId, ingredients: ['1 apple, sliced'], viewMode: 'processed' })
   );
   const res = await helpers.request(ctx.port, { path: `/recipes/${recipeId}` });
   assert.strictEqual(res.status, 200);
   assert.match(res.body, /<span class="recipe-ingredient-text">1 apple, sliced<\/span>/);
   assert.ok(!res.body.includes('pomme'), 'rendered body must not contain canonical name pomme');
-  // Sanity: shared icon partial included.
+  // Sanity: shared icon partial included (only in processed/categorized view).
   assert.match(res.body, /viewBox="0 0 16 16"/);
 });
 
@@ -339,9 +345,10 @@ test('GET /recipes/:id rendering does not substitute entry.name even after renam
 //    next GET MUST still render ing.text, not the new entry.name.
 
 test('FIX-04 round-trip: changing library category does NOT change recipe ingredient text', async () => {
+  // viewMode 'processed' required so category headers appear in both pre- and post-POST renders.
   seedLibraryAndRecipe(
     makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'], recipeCategory: 'Veg', groceryCategory: 'Produce' }),
-    makeRecipe({ id: 'r_test01', ingredients: ['1 apple, sliced'] })
+    makeRecipe({ id: 'r_test01', ingredients: ['1 apple, sliced'], viewMode: 'processed' })
   );
 
   // POST new recipeCategory.
@@ -384,4 +391,64 @@ test('FIX-04 round-trip: renaming library entry across renders does NOT change r
   for (const span of ingTextMatches) {
     assert.ok(!span.includes('pomme'), `FIX-04 violation: span contains canonical name: ${span}`);
   }
+});
+
+// ----- QUICK-K14: per-recipe ingredient view toggle --------------------------
+
+test('GET /recipes/:id defaults to original view (no category headers)', async () => {
+  seedLibraryAndRecipe(
+    makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'] }),
+    makeRecipe({ id: 'r_test0001', ingredients: ['1 apple'] })
+    // no viewMode set -- must default to original
+  );
+  const res = await helpers.request(ctx.port, { path: '/recipes/r_test0001' });
+  assert.strictEqual(res.status, 200);
+  assert.doesNotMatch(res.body, /<h3 class="ingredient-category">/);
+  assert.match(res.body, /1 apple/);
+});
+
+test('POST /recipes/:id/view flips to processed and persists', async () => {
+  seedLibraryAndRecipe(
+    makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'], recipeCategory: 'Veg' }),
+    makeRecipe({ id: 'r_test0001', ingredients: ['1 apple'] })
+  );
+  const res = await helpers.request(ctx.port, {
+    method: 'POST', path: '/recipes/r_test0001/view', body: {}
+  });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /<h3 class="ingredient-category">/);
+  const storage = require('../lib/storage');
+  assert.strictEqual(storage.get().recipes[0].viewMode, 'processed');
+});
+
+test('POST /recipes/:id/view twice flips back to original', async () => {
+  seedLibraryAndRecipe(
+    makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'] }),
+    makeRecipe({ id: 'r_test0001', ingredients: ['1 apple'] })
+  );
+  await helpers.request(ctx.port, { method: 'POST', path: '/recipes/r_test0001/view', body: {} });
+  await helpers.request(ctx.port, { method: 'POST', path: '/recipes/r_test0001/view', body: {} });
+  const storage = require('../lib/storage');
+  assert.strictEqual(storage.get().recipes[0].viewMode, 'original');
+});
+
+test('POST /recipes/:id/view unknown id returns 404', async () => {
+  const res = await helpers.request(ctx.port, {
+    method: 'POST', path: '/recipes/nope/view', body: {}
+  });
+  assert.strictEqual(res.status, 404);
+});
+
+test('POST /recipes/:id/view returns OOB toggle with updated label', async () => {
+  seedLibraryAndRecipe(
+    makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'], recipeCategory: 'Veg' }),
+    makeRecipe({ id: 'r_test0001', ingredients: ['1 apple'] })
+  );
+  const res = await helpers.request(ctx.port, {
+    method: 'POST', path: '/recipes/r_test0001/view', body: {}
+  });
+  assert.strictEqual(res.status, 200);
+  assert.match(res.body, /id="ingredient-view-toggle-r_test0001"/);
+  assert.match(res.body, /hx-swap-oob="true"/);
+  assert.match(res.body, /Show original/);
 });

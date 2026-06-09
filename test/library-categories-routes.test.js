@@ -485,6 +485,7 @@ test('Round-trip /grocery: change library category -> grocery item moves to new 
 
 test('Round-trip /recipes/:id: change library category -> ingredient moves to new group', async () => {
   seedLibrary([makeEntry({ id: 'lb_apple01', name: 'apple', aliases: ['apple'], recipeCategory: 'Veg', groceryCategory: 'Produce' })]);
+  // viewMode 'processed' required to see category headers (default is 'original').
   seedRecipes([{
     id: 'r_test01',
     title: 'T',
@@ -494,7 +495,8 @@ test('Round-trip /recipes/:id: change library category -> ingredient moves to ne
     imageUrl: '',
     totalMinutes: 0,
     servings: '1',
-    addedAt: new Date().toISOString()
+    addedAt: new Date().toISOString(),
+    viewMode: 'processed'
   }]);
 
   // 1. Initial GET -- apple under Veg group.

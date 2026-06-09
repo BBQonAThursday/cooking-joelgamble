@@ -2,7 +2,7 @@ const express = require('express');
 const storage = require('../lib/storage');
 const scrapeMod = require('../lib/scrape');
 const { idForUrl } = require('../lib/id');
-const { respondWithUpdates } = require('../lib/render');
+const { respondWithUpdates, renderSync, injectOob } = require('../lib/render');
 const { sourceDomain, formatTotalTime, decorateIngredients } = require('../lib/calc');
 // Module reference (not destructured) so test/recipes.test.js's D-48
 // monkey-patch (libraryMod.extractAndSeed = ...) takes effect — mirrors
@@ -10,6 +10,29 @@ const { sourceDomain, formatTotalTime, decorateIngredients } = require('../lib/c
 const libraryMod = require('../lib/library');
 
 const router = express.Router();
+
+// Shared helper: builds the full decorated recipe shape for the detail view.
+// Used by GET /recipes/:id and POST /recipes/:id/view so the shape is consistent.
+// Render-time categorization: decorateIngredients runs only in processed mode.
+// NEVER store computed categories on the recipe — CLAUDE.md constraint.
+function decorateRecipeDetail(state, recipe) {
+  const { mondayOf } = require('../lib/week');
+  const monday = mondayOf(new Date());
+  const week = (state.weeks || []).find(w => w.weekStart === monday);
+  const isTagged = !!(week && week.recipeIds.includes(recipe.id));
+  const viewMode = recipe.viewMode === 'processed' ? 'processed' : 'original';
+  return {
+    ...recipe,
+    sourceDomain: sourceDomain(recipe.sourceUrl),
+    totalTimeLabel: formatTotalTime(recipe.totalMinutes),
+    isTagged,
+    viewMode,
+    // Only compute groups in processed mode; original mode does not render them.
+    ingredientGroups: viewMode === 'processed'
+      ? decorateIngredients(recipe.ingredients, state.library)
+      : []
+  };
+}
 
 function setToast(res, msg) {
   // Single ASCII line, capped to a sane size.
@@ -66,18 +89,22 @@ router.get('/recipes/:id', (req, res) => {
   const state = storage.get();
   const recipe = state.recipes.find(r => r.id === req.params.id);
   if (!recipe) return res.status(404).type('text').send('Not found');
-  const { mondayOf } = require('../lib/week');
-  const monday = mondayOf(new Date());
-  const week = (state.weeks || []).find(w => w.weekStart === monday);
-  const isTagged = !!(week && week.recipeIds.includes(recipe.id));
-  const decorated = {
-    ...recipe,
-    sourceDomain: sourceDomain(recipe.sourceUrl),
-    totalTimeLabel: formatTotalTime(recipe.totalMinutes),
-    isTagged,
-    ingredientGroups: decorateIngredients(recipe.ingredients, state.library)
-  };
+  const decorated = decorateRecipeDetail(state, recipe);
   res.render('recipe.njk', { recipe: decorated });
+});
+
+router.post('/recipes/:id/view', (req, res) => {
+  const state = storage.get();
+  const recipe = state.recipes.find(r => r.id === req.params.id);
+  if (!recipe) return res.status(404).type('text').send('Not found');
+  recipe.viewMode = recipe.viewMode === 'processed' ? 'original' : 'processed';
+  storage.save();
+  const decorated = decorateRecipeDetail(state, recipe);
+  // Primary fragment swaps into #recipe-ingredients-body-{id} (innerHTML).
+  const body = renderSync(req, 'partials/recipe-ingredients-body.njk', { recipe: decorated });
+  // OOB toggle updates the button label in place.
+  const toggle = injectOob(renderSync(req, 'partials/ingredient-view-toggle.njk', { recipe: decorated }));
+  res.type('html').send(body + '\n' + toggle);
 });
 
 router.delete('/recipes/:id', (req, res) => {
