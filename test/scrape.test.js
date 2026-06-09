@@ -449,6 +449,30 @@ test('parseIngredientSections: non-WPRM HTML returns []', () => {
   assert.deepStrictEqual(sections, []);
 });
 
+// Regression (quick-260609-nph live backfill): some WPRM sites (e.g.
+// indianhealthyrecipes.com) render the group-name heading on a <div>, not an
+// <h4>. The heading match must be tag-agnostic.
+const WPRM_DIV_HEADINGS = `
+<div class="wprm-recipe-ingredient-group">
+  <div class="wprm-recipe-group-name wprm-recipe-ingredient-group-name wprm-block-text-bold">To Saute &amp; Puree</div>
+  <ul class="wprm-recipe-ingredients">
+    <li class="wprm-recipe-ingredient"><span class="wprm-recipe-ingredient-name">onion</span></li>
+  </ul>
+</div>
+<div class="wprm-recipe-ingredient-group">
+  <div class="wprm-recipe-group-name wprm-recipe-ingredient-group-name wprm-block-text-bold">For Matar Paneer Gravy</div>
+  <ul class="wprm-recipe-ingredients">
+    <li class="wprm-recipe-ingredient"><span class="wprm-recipe-ingredient-name">peas</span></li>
+  </ul>
+</div>`;
+
+test('parseIngredientSections: group-name heading on a <div> (not <h4>) is extracted', () => {
+  const sections = parseIngredientSections(WPRM_DIV_HEADINGS);
+  assert.strictEqual(sections.length, 2);
+  assert.strictEqual(sections[0].heading, 'To Saute & Puree');
+  assert.strictEqual(sections[1].heading, 'For Matar Paneer Gravy');
+});
+
 test('parseIngredientSections: empty string returns []', () => {
   assert.deepStrictEqual(parseIngredientSections(''), []);
 });
