@@ -347,3 +347,239 @@ test('scrape returns a clearer reason when Cloudflare bot-mitigation blocks the 
   assert.strictEqual(result.ok, false);
   assert.match(result.reason, /bot|blocked/i);
 });
+
+// ----- parseIngredientSections + decodeHtmlEntities (Task 1 / quick-260609-nph) -----
+
+const { parseIngredientSections, decodeHtmlEntities } = require('../lib/scrape');
+
+// WPRM fixture HTML: 2 named groups with entities.
+const WPRM_2_GROUPS = `
+<div class="wprm-recipe-ingredient-group">
+  <h4 class="wprm-recipe-group-name">To Saute &amp; Puree</h4>
+  <ul class="wprm-recipe-ingredients">
+    <li class="wprm-recipe-ingredient">
+      <span class="wprm-recipe-ingredient-amount">2</span>
+      <span class="wprm-recipe-ingredient-unit">tbsp</span>
+      <span class="wprm-recipe-ingredient-name">oil</span>
+    </li>
+    <li class="wprm-recipe-ingredient">
+      <span class="wprm-recipe-ingredient-amount">1</span>
+      <span class="wprm-recipe-ingredient-unit">cup</span>
+      <span class="wprm-recipe-ingredient-name">tomatoes</span>
+      <span class="wprm-recipe-ingredient-notes">chopped</span>
+    </li>
+  </ul>
+</div>
+<div class="wprm-recipe-ingredient-group">
+  <h4 class="wprm-recipe-group-name">For Matar Paneer Gravy</h4>
+  <ul class="wprm-recipe-ingredients">
+    <li class="wprm-recipe-ingredient">
+      <span class="wprm-recipe-ingredient-amount">200</span>
+      <span class="wprm-recipe-ingredient-unit">g</span>
+      <span class="wprm-recipe-ingredient-name">paneer</span>
+    </li>
+  </ul>
+</div>
+`;
+
+// WPRM fixture: single unnamed group (no h4 heading).
+const WPRM_SINGLE_UNNAMED = `
+<div class="wprm-recipe-ingredient-group">
+  <ul class="wprm-recipe-ingredients">
+    <li class="wprm-recipe-ingredient">
+      <span class="wprm-recipe-ingredient-amount">1</span>
+      <span class="wprm-recipe-ingredient-name">onion</span>
+    </li>
+  </ul>
+</div>
+`;
+
+// Non-WPRM HTML: no wprm-recipe-ingredient-group divs.
+const NON_WPRM_HTML = `
+<html><body>
+  <ul class="ingredients-list">
+    <li>1 cup flour</li>
+    <li>2 eggs</li>
+  </ul>
+</body></html>
+`;
+
+test('parseIngredientSections: 2-named-groups WPRM fixture returns 2 sections', () => {
+  const sections = parseIngredientSections(WPRM_2_GROUPS);
+  assert.strictEqual(sections.length, 2);
+  assert.strictEqual(sections[0].heading, 'To Saute & Puree');
+  assert.strictEqual(sections[1].heading, 'For Matar Paneer Gravy');
+  assert.ok(sections[0].items.length >= 2, 'first group should have items');
+  assert.ok(sections[1].items.length >= 1, 'second group should have items');
+});
+
+test('parseIngredientSections: section headings are ASCII-only (& decoded, no non-ASCII)', () => {
+  const sections = parseIngredientSections(WPRM_2_GROUPS);
+  for (const sec of sections) {
+    if (sec.heading) {
+      // All characters must be in ASCII range.
+      assert.ok(/^[\x00-\x7F]*$/.test(sec.heading),
+        'heading must be ASCII-only: ' + sec.heading);
+    }
+    for (const item of sec.items) {
+      assert.ok(/^[\x00-\x7F]*$/.test(item), 'item must be ASCII-only: ' + item);
+    }
+  }
+});
+
+test('parseIngredientSections: items are plain text (tags stripped, whitespace collapsed)', () => {
+  const sections = parseIngredientSections(WPRM_2_GROUPS);
+  // Each item should not contain any HTML tags.
+  for (const sec of sections) {
+    for (const item of sec.items) {
+      assert.doesNotMatch(item, /<[^>]+>/, 'item must not contain HTML tags');
+      // No double spaces from collapsed whitespace.
+      assert.doesNotMatch(item, /  /, 'item must not contain double spaces');
+    }
+  }
+});
+
+test('parseIngredientSections: single unnamed WPRM group returns [] (flat fallback)', () => {
+  const sections = parseIngredientSections(WPRM_SINGLE_UNNAMED);
+  assert.deepStrictEqual(sections, []);
+});
+
+test('parseIngredientSections: non-WPRM HTML returns []', () => {
+  const sections = parseIngredientSections(NON_WPRM_HTML);
+  assert.deepStrictEqual(sections, []);
+});
+
+test('parseIngredientSections: empty string returns []', () => {
+  assert.deepStrictEqual(parseIngredientSections(''), []);
+});
+
+test('parseIngredientSections: non-string returns []', () => {
+  assert.deepStrictEqual(parseIngredientSections(null), []);
+  assert.deepStrictEqual(parseIngredientSections(undefined), []);
+});
+
+// WPRM fixture with entity-encoded heading and smart apostrophe in item.
+const WPRM_ENTITIES = `
+<div class="wprm-recipe-ingredient-group">
+  <h4 class="wprm-recipe-group-name">Sauce &amp; Base</h4>
+  <ul class="wprm-recipe-ingredients">
+    <li class="wprm-recipe-ingredient">
+      <span class="wprm-recipe-ingredient-name">garlic&#8217;s cloves</span>
+    </li>
+  </ul>
+</div>
+<div class="wprm-recipe-ingredient-group">
+  <h4 class="wprm-recipe-group-name">Topping &ndash; optional</h4>
+  <ul class="wprm-recipe-ingredients">
+    <li class="wprm-recipe-ingredient">
+      <span class="wprm-recipe-ingredient-name">cheese</span>
+    </li>
+  </ul>
+</div>
+`;
+
+test('parseIngredientSections: entity decoding in headings and items (ASCII output)', () => {
+  const sections = parseIngredientSections(WPRM_ENTITIES);
+  assert.strictEqual(sections.length, 2);
+  // &amp; decoded to &, &ndash; decoded to -.
+  assert.strictEqual(sections[0].heading, 'Sauce & Base');
+  assert.strictEqual(sections[1].heading, 'Topping - optional');
+  // &#8217; (smart apostrophe) decoded to plain apostrophe.
+  assert.ok(sections[0].items[0].includes("garlic's cloves"),
+    'smart apostrophe should decode to straight apostrophe');
+  // All output ASCII.
+  for (const sec of sections) {
+    if (sec.heading) assert.ok(/^[\x00-\x7F]*$/.test(sec.heading));
+    for (const item of sec.items) assert.ok(/^[\x00-\x7F]*$/.test(item));
+  }
+});
+
+test('decodeHtmlEntities: common named entities decode correctly', () => {
+  assert.strictEqual(decodeHtmlEntities('&amp;'), '&');
+  assert.strictEqual(decodeHtmlEntities('&lt;&gt;'), '<>');
+  assert.strictEqual(decodeHtmlEntities('&quot;'), '"');
+  assert.strictEqual(decodeHtmlEntities('&apos;'), "'");
+  assert.strictEqual(decodeHtmlEntities('&nbsp;'), ' ');
+  assert.strictEqual(decodeHtmlEntities('&ndash;'), '-');
+  assert.strictEqual(decodeHtmlEntities('&mdash;'), '-');
+  assert.strictEqual(decodeHtmlEntities('&hellip;'), '...');
+});
+
+test('decodeHtmlEntities: numeric decimal entities decode to ASCII', () => {
+  // &#8217; is right single quote U+2019 -> '
+  assert.strictEqual(decodeHtmlEntities('&#8217;'), "'");
+  // &#8220; is left double quote U+201C -> "
+  assert.strictEqual(decodeHtmlEntities('&#8220;'), '"');
+  // &#8221; is right double quote U+201D -> "
+  assert.strictEqual(decodeHtmlEntities('&#8221;'), '"');
+  // &#8211; is en dash U+2013 -> -
+  assert.strictEqual(decodeHtmlEntities('&#8211;'), '-');
+  // &#8212; is em dash U+2014 -> -
+  assert.strictEqual(decodeHtmlEntities('&#8212;'), '-');
+  // &#160; is non-breaking space U+00A0 -> space
+  assert.strictEqual(decodeHtmlEntities('&#160;'), ' ');
+  // &#65; is 'A' (safe ASCII)
+  assert.strictEqual(decodeHtmlEntities('&#65;'), 'A');
+});
+
+test('decodeHtmlEntities: numeric hex entities decode to ASCII', () => {
+  // &#x2019; is right single quote -> '
+  assert.strictEqual(decodeHtmlEntities('&#x2019;'), "'");
+  // &#x201C; is left double quote -> "
+  assert.strictEqual(decodeHtmlEntities('&#x201C;'), '"');
+  // &#x2013; is en dash -> -
+  assert.strictEqual(decodeHtmlEntities('&#x2013;'), '-');
+});
+
+test('decodeHtmlEntities: raw non-ASCII Unicode stripped/mapped to ASCII', () => {
+  // Smart quote characters in raw UTF-8.
+  assert.strictEqual(decodeHtmlEntities('‘hello’'), "'hello'");
+  // En/em dash.
+  assert.strictEqual(decodeHtmlEntities('a–b'), 'a-b');
+  assert.strictEqual(decodeHtmlEntities('a—b'), 'a-b');
+  // Ellipsis.
+  assert.strictEqual(decodeHtmlEntities('wait…'), 'wait...');
+  // Non-breaking space.
+  assert.strictEqual(decodeHtmlEntities('a b'), 'a b');
+  // Arbitrary high codepoint stripped.
+  assert.strictEqual(decodeHtmlEntities('café'), 'caf');
+});
+
+test('decodeHtmlEntities: output is always ASCII-only', () => {
+  const inputs = ['&amp;', '&mdash;', '&#8217;', '&#x201C;', '…', 'plain text'];
+  for (const inp of inputs) {
+    const out = decodeHtmlEntities(inp);
+    assert.ok(/^[\x00-\x7F]*$/.test(out), 'output must be ASCII-only for input: ' + inp);
+  }
+});
+
+test('normalizeRecipe includes ingredientSections when WPRM html provided', () => {
+  const node = {
+    '@type': 'Recipe',
+    name: 'Curry',
+    recipeIngredient: ['2 tbsp oil', '1 cup tomatoes', '200g paneer'],
+    recipeInstructions: []
+  };
+  const result = normalizeRecipe(node, 'https://example.com/', WPRM_2_GROUPS);
+  // Flat ingredients from JSON-LD node must be unchanged.
+  assert.deepStrictEqual(result.ingredients, ['2 tbsp oil', '1 cup tomatoes', '200g paneer']);
+  // ingredientSections populated from WPRM html.
+  assert.ok(Array.isArray(result.ingredientSections), 'ingredientSections must be an array');
+  assert.strictEqual(result.ingredientSections.length, 2);
+  assert.strictEqual(result.ingredientSections[0].heading, 'To Saute & Puree');
+  assert.strictEqual(result.ingredientSections[1].heading, 'For Matar Paneer Gravy');
+});
+
+test('normalizeRecipe ingredientSections is [] when no WPRM html (flat fallback)', () => {
+  const node = { '@type': 'Recipe', name: 'Bare', recipeIngredient: ['salt'] };
+  const result = normalizeRecipe(node, 'https://example.com/');
+  assert.deepStrictEqual(result.ingredientSections, []);
+  assert.deepStrictEqual(result.ingredients, ['salt']);
+});
+
+test('normalizeRecipe ingredientSections is [] for non-WPRM html', () => {
+  const node = { '@type': 'Recipe', name: 'Plain', recipeIngredient: ['flour'] };
+  const result = normalizeRecipe(node, 'https://example.com/', NON_WPRM_HTML);
+  assert.deepStrictEqual(result.ingredientSections, []);
+  assert.deepStrictEqual(result.ingredients, ['flour']);
+});
