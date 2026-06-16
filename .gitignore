@@ -28,3 +28,6 @@ data/
 
 # Claude Code local overrides
 .claude/settings.local.json
+
+# Local Netlify folder
+.netlify

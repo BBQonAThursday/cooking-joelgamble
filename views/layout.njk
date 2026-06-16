@@ -15,6 +15,7 @@
     <a href="/grocery" class="tab{% if activeTab == 'grocery' %} active{% endif %}">Grocery</a>
     <a href="/history" class="tab{% if activeTab == 'history' %} active{% endif %}">History</a>
     <a href="/library" class="tab{% if activeTab == 'library' %} active{% endif %}">Library</a>
+    {% if userEmail %}<a href="/logout" class="tab tab-account" title="{{ userEmail }}">Log out</a>{% endif %}
   </nav>
   {% block content %}{% endblock %}
   <div class="status-toast" id="status-toast"></div>

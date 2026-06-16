@@ -33,15 +33,22 @@ function createApp() {
   app.get('/healthz', (req, res) => res.type('text').send('ok'));
 
   // DB connectivity probe — reports ok + which env var held the connection
-  // string (never the value). Meaningful only where a database is wired up.
+  // string (never the value). Public (registered before the auth gate).
   app.get('/healthz/db', async (req, res) => {
     try {
       const db = require('./lib/db');
-      res.type('json').send(JSON.stringify(await db.diagnostics()));
+      res.type('json').send(JSON.stringify(await db.healthCheck()));
     } catch (err) {
       res.status(500).type('json').send(JSON.stringify({ ok: false, error: err.message }));
     }
   });
+
+  // Cloud mode: Google auth + per-user Postgres. Enabled only when configured
+  // (deployed); local dev and tests run unauthenticated on the file backend.
+  // Installed here so /healthz* stay public but all app routes below are gated.
+  if (process.env.GOOGLE_CLIENT_ID) {
+    require('./lib/cloud').installCloud(app);
+  }
 
   app.use('/', require('./routes/recipes'));
   app.use('/', require('./routes/weeks'));
