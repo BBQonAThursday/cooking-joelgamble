@@ -12,7 +12,7 @@
   node_bundler = "esbuild"
   # nunjucks resolves templates at runtime via __dirname and does dynamic
   # requires; keep it (and express) un-bundled so that keeps working.
-  external_node_modules = ["express", "nunjucks", "serverless-http"]
+  external_node_modules = ["express", "nunjucks", "serverless-http", "@netlify/database"]
   # esbuild can't statically trace the .njk templates, so ship them explicitly.
   included_files = ["views/**"]
 

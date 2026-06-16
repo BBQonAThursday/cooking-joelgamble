@@ -37,7 +37,7 @@ function createApp() {
   app.get('/healthz/db', async (req, res) => {
     try {
       const db = require('./lib/db');
-      res.type('json').send(JSON.stringify(await db.healthCheck()));
+      res.type('json').send(JSON.stringify(await db.diagnostics()));
     } catch (err) {
       res.status(500).type('json').send(JSON.stringify({ ok: false, error: err.message }));
     }

@@ -16,6 +16,7 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
+    "@netlify/database": "^1.0.0",
     "@netlify/functions": "^2.8.2",
     "express": "^4.21.1",
     "nunjucks": "^3.2.4",
