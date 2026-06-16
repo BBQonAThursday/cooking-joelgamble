@@ -1,11 +1,24 @@
+const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
 const nunjucks = require('nunjucks');
 
+// Resolve views/ and public/ robustly. Locally __dirname is the repo root, but
+// inside a bundled Netlify Function esbuild rewrites __dirname while the
+// included files land at the task root (process.cwd()). Pick the first that exists.
+function resolveDir(name) {
+  const candidates = [
+    path.join(__dirname, name),
+    path.join(process.cwd(), name),
+    path.join(__dirname, '..', '..', name)
+  ];
+  return candidates.find(p => fs.existsSync(p)) || candidates[0];
+}
+
 function createApp() {
   const app = express();
 
-  const env = nunjucks.configure(path.join(__dirname, 'views'), {
+  const env = nunjucks.configure(resolveDir('views'), {
     autoescape: true,
     express: app,
     noCache: process.env.NODE_ENV !== 'production'
@@ -15,7 +28,7 @@ function createApp() {
 
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json({ limit: '1mb' }));
-  app.use(express.static(path.join(__dirname, 'public')));
+  app.use(express.static(resolveDir('public')));
 
   app.get('/healthz', (req, res) => res.type('text').send('ok'));
 
