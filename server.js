@@ -32,6 +32,17 @@ function createApp() {
 
   app.get('/healthz', (req, res) => res.type('text').send('ok'));
 
+  // DB connectivity probe — reports ok + which env var held the connection
+  // string (never the value). Meaningful only where a database is wired up.
+  app.get('/healthz/db', async (req, res) => {
+    try {
+      const db = require('./lib/db');
+      res.type('json').send(JSON.stringify(await db.healthCheck()));
+    } catch (err) {
+      res.status(500).type('json').send(JSON.stringify({ ok: false, error: err.message }));
+    }
+  });
+
   app.use('/', require('./routes/recipes'));
   app.use('/', require('./routes/weeks'));
   app.use('/', require('./routes/grocery'));

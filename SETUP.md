@@ -18,72 +18,59 @@ Legend: `[x]` done · `[ ]` to do · 🧑 = you (dashboard/login) · 🤖 = Clau
 
 ---
 
-## Step 2 — Create Netlify site + smoke-test deploy  🧑
-- [ ] https://app.netlify.com → **Add new site → Import an existing project** → connect GitHub → pick `cooking-joelgamble`
-- [ ] Leave build settings as-is (Netlify reads `netlify.toml`) → **Deploy**
-- [ ] **Site configuration → Environment variables → Add a variable:**
-  - `RECIPE_BOX_DATA_DIR` = `/tmp`   *(app still writes a JSON file at this stage; Netlify FS is read-only except /tmp)*
-  - `NODE_VERSION` = `20`   *(optional but recommended)*
-- [ ] **Deploys → Trigger deploy → Deploy site**, then open the `https://<random>.netlify.app` URL
-- [ ] ✅ Confirm the Recipes page renders + CSS/tabs load *(data won't persist yet — that's expected, DB replaces it in Step 4)*
-- [ ] 📨 Send the `*.netlify.app` URL back to Claude
+## Step 2 — Create Netlify site + smoke-test deploy  ✅ DONE
+- [x] Site created from `cooking-joelgamble`, building from `netlify.toml`
+- [x] `RECIPE_BOX_DATA_DIR=/tmp` set
+- [x] 🤖 Fixed first-deploy 500 (resolve views/public dirs in the bundled function)
+- [x] ✅ Verified live: `/`, `/this-week`, `/grocery`, `/history`, `/library` all render 200
 
-> If it 500s: **Deploys → (latest) → Functions → app** → copy the log to Claude.
-
-**My site URL:** `__________________________.netlify.app`
+**My site URL:** `https://cooking-joelgamble.netlify.app`
 
 ---
 
-## Step 3 — Provision Netlify DB (Neon Postgres)  🧑
-- [ ] Site dashboard → **Project configuration → Database** (or **Extensions** → search Neon/Netlify DB) → **Add database / Get started**
-- [ ] Accept defaults to provision
-- [ ] Confirm a `NETLIFY_DATABASE_URL`-style var now appears under **Site configuration → Environment variables**
+## Step 3 — Provision Netlify Database (Neon Postgres)  🧑
+> The project-level **Netlify Database** is the current product (the Neon *extension* is the deprecated beta). It requires the **credit-based plan** — that's why provisioning was blocked on the legacy free plan.
+- [ ] **Billing → switch the account/team to the credit-based plan** (stays ~$0 within the free allowance; needs a payment method on file)
+- [ ] Site dashboard → **Project configuration → Database** → **Add database / Get started** → accept defaults
+- [ ] Confirm a `NETLIFY_DATABASE_URL` var now appears under **Site configuration → Environment variables**
   *(no secret to copy — Netlify injects it into the functions automatically)*
-- [ ] 🤖 Claude then adds `@netlify/database`, the schema migration, and the rewritten `storage.js`
+- [ ] 🤖 Claude then adds the Neon client, the schema migration, and the rewritten `storage.js`
 
 ---
 
-## Step 4 — Auth0 (Regular Web Application)  🧑
-- [ ] https://manage.auth0.com → log in. Note tenant domain: `__________.us.auth0.com`
-- [ ] **Applications → Create Application** → name `Cooking` → **Regular Web Applications** → Create
-- [ ] App **Settings** → set + Save:
-  - **Allowed Callback URLs:**
-    `http://localhost:3003/callback, https://<netlify-subdomain>.netlify.app/callback, https://cooking.joelgamble.io/callback`
-  - **Allowed Logout URLs:**
-    `http://localhost:3003, https://<netlify-subdomain>.netlify.app, https://cooking.joelgamble.io`
-  - **Allowed Web Origins:** the same three origins (no `/callback`)
-- [ ] Copy **Domain**, **Client ID**, **Client Secret**
-- [ ] Keep it private: **Authentication → Database → Username-Password-Authentication → Settings → "Disable Sign Ups" = ON**
-- [ ] Add the few users manually: **User Management → Users → Create User**
-- [ ] Generate a cookie secret: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+## Step 4 — Sign in with Google (direct OAuth + cookie session)  🧑
+> Not Netlify Identity: its function auth is Bearer-token based, which breaks on plain full-page navigations between tabs. Direct Google OAuth + a cookie session works for both navigations and HTMX posts.
+- [ ] https://console.cloud.google.com → create/select a project
+- [ ] **APIs & Services → OAuth consent screen** → **External** → app name `Cooking`, your support + developer email → scopes `openid`, `email`, `profile` → add the invited people as **Test users** (or Publish)
+- [ ] **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application:**
+  - **Authorized redirect URIs:**
+    `http://localhost:3003/auth/callback`, `https://cooking.joelgamble.io/auth/callback`
+- [ ] Copy **Client ID** + **Client Secret**
+- [ ] Generate a session secret: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 - [ ] Add env vars in Netlify (**Site configuration → Environment variables**):
-  - `AUTH0_ISSUER_BASE_URL` = `https://your-tenant.us.auth0.com`
-  - `AUTH0_CLIENT_ID` = `…`
-  - `AUTH0_CLIENT_SECRET` = `…`
-  - `AUTH0_SECRET` = `…` *(the 64-char hex above)*
-  - `BASE_URL` = `https://cooking.joelgamble.io` *(use the `.netlify.app` URL until the custom domain is live)*
-- [ ] 🤖 Claude then adds the `express-openid-connect` middleware + login gate
+  - `GOOGLE_CLIENT_ID` = `…`
+  - `GOOGLE_CLIENT_SECRET` = `…`
+  - `SESSION_SECRET` = `…` *(the 64-char hex above)*
+  - `BASE_URL` = `https://cooking.joelgamble.io`
+  - `ALLOWED_EMAILS` = comma-separated allowlist of who may log in, e.g. `you@gmail.com,friend@gmail.com`
+- [ ] 🤖 Claude then adds the Google OAuth flow + cookie-session login gate + profile/logout in nav
 
 ---
 
-## Step 5 — Custom domain `cooking.joelgamble.io`  🧑 (can run in parallel)
-- [ ] Netlify site → **Domain management → Add a domain** → `cooking.joelgamble.io`
-- [ ] Point DNS:
-  - If `joelgamble.io` already uses **Netlify DNS** → Netlify adds the record automatically; just confirm
-  - If DNS is at registrar/Cloudflare → add **CNAME** `cooking` → `<netlify-subdomain>.netlify.app` (Cloudflare: **DNS only / grey cloud** so the cert can issue)
-- [ ] Wait for DNS + auto TLS (Let's Encrypt); confirm `https://cooking.joelgamble.io` loads
-- [ ] Update `BASE_URL` + Auth0 callback/logout URLs to the real domain
+## Step 5 — Custom domain `cooking.joelgamble.io`  ✅ DONE
+- [x] Domain added + DNS pointed
+- [x] ✅ Verified live with TLS: `https://cooking.joelgamble.io/` renders 200
 
 ---
 
-## Then — Claude builds (after Steps 2–4 exist)
-- [ ] 🤖 Step 3 code: Postgres-backed `storage.js` (per-user via `AsyncLocalStorage`, no route changes) + schema migration
-- [ ] 🤖 Step 4 code: Auth0 `express-openid-connect` middleware + profile/logout in nav
-- [ ] 🤖 One-time import of existing recipes from `home-hub/recipe-box/data/state.json` under your Auth0 user
+## Then — Claude builds (after Steps 3–4 exist)
+- [ ] 🤖 Storage code: Postgres-backed `storage.js` (per-user via `AsyncLocalStorage`, no route changes) + schema migration
+- [ ] 🤖 Auth code: Google OAuth flow + cookie-session login gate + profile/logout in nav, allowlisted by `ALLOWED_EMAILS`
+- [ ] 🤖 One-time import of existing recipes from `home-hub/recipe-box/data/state.json` under your Google account
 - [ ] 🤖 Update tests against a Neon test branch
-- [ ] ✅ Verify: log in → paste recipe URL → save → tag week → confirm → grocery → check off; second user sees an empty, isolated box
+- [ ] ✅ Verify: log in with Google → paste recipe URL → save → tag week → confirm → grocery → check off; second user sees an empty, isolated box
 
 ---
 
 ## Cost note
-Effectively **$0** at this scale: Netlify DB free allowance (5 GB storage/writes/bandwidth, 1 compute unit), Functions free tier, Auth0 free tier all comfortably cover a few users. Storage is free until **July 1, 2026**, billed after — only matters if data grows large.
+Effectively **$0** at this scale: Netlify DB free allowance (5 GB storage/writes/bandwidth, 1 compute unit), Functions free tier, and Google OAuth (free) comfortably cover a few users. Note the DB requires the **credit-based plan** with a payment method on file; storage is free until **July 1, 2026**, billed after — only matters if data grows large.
