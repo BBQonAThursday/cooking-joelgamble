@@ -1,5 +1,5 @@
 {
-  "name": "recipe-box",
+  "name": "cooking-joelgamble",
   "version": "0.1.0",
   "private": true,
   "description": "Personal recipe box. Paste a URL — the app scrapes the JSON-LD recipe and saves it.",
@@ -15,7 +15,9 @@
   "author": "Joel",
   "license": "UNLICENSED",
   "dependencies": {
+    "@netlify/functions": "^2.8.2",
     "express": "^4.21.1",
-    "nunjucks": "^3.2.4"
+    "nunjucks": "^3.2.4",
+    "serverless-http": "^3.2.0"
   }
 }

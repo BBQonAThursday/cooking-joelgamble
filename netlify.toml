@@ -1,0 +1,24 @@
+# Netlify config for cooking.joelgamble.io
+# The whole Express app runs as ONE function (netlify/functions/app.js) via
+# serverless-http. Static assets live in public/ and are served by the CDN;
+# everything else falls through the catch-all redirect to the function.
+
+[build]
+  command = "echo no build step"
+  publish = "public"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  # nunjucks resolves templates at runtime via __dirname and does dynamic
+  # requires; keep it (and express) un-bundled so that keeps working.
+  external_node_modules = ["express", "nunjucks", "serverless-http"]
+  # esbuild can't statically trace the .njk templates, so ship them explicitly.
+  included_files = ["views/**"]
+
+# Static files in publish/ resolve first (this redirect is NOT forced), so
+# /styles.css and /vendor/* are served by the CDN; all app routes hit the function.
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/app/:splat"
+  status = 200
