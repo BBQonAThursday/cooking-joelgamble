@@ -63,12 +63,14 @@ Legend: `[x]` done · `[ ]` to do · 🧑 = you (dashboard/login) · 🤖 = Clau
 
 ---
 
-## Then — Claude builds (after Steps 3–4 exist)
-- [ ] 🤖 Storage code: Postgres-backed `storage.js` (per-user via `AsyncLocalStorage`, no route changes) + schema migration
-- [ ] 🤖 Auth code: Google OAuth flow + cookie-session login gate + profile/logout in nav, allowlisted by `ALLOWED_EMAILS`
+## Then — Claude builds
+- [x] 🤖 Storage code: Postgres-backed `storage.js` (per-user via `AsyncLocalStorage`, no route changes); schema auto-created (`CREATE TABLE IF NOT EXISTS`)
+- [x] 🤖 Auth code: Google OAuth flow + cookie-session login gate + logout/email in nav, allowlisted by `ALLOWED_EMAILS`
+- [x] 🤖 Deployed; verified: `/` gates to `/login`, `/login` → Google, `/healthz/db` ok
+- [ ] 🧑 **Browser test:** sign in at https://cooking.joelgamble.io with an allowlisted Google account → paste a recipe URL → reload → recipe persists (proves DB write)
 - [ ] 🤖 One-time import of existing recipes from `home-hub/recipe-box/data/state.json` under your Google account
-- [ ] 🤖 Update tests against a Neon test branch
-- [ ] ✅ Verify: log in with Google → paste recipe URL → save → tag week → confirm → grocery → check off; second user sees an empty, isolated box
+- [ ] 🤖 Cleanup: remove temp `/healthz/db` probe + now-unneeded `RECIPE_BOX_DATA_DIR` env
+- [ ] ✅ Final: second allowlisted user sees an empty, isolated box
 
 ---
 

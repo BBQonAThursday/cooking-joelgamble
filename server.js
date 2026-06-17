@@ -47,6 +47,35 @@ function createApp() {
   // (deployed); local dev and tests run unauthenticated on the file backend.
   // Installed here so /healthz* stay public but all app routes below are gated.
   if (process.env.GOOGLE_CLIENT_ID) {
+    // TEMPORARY token-gated import: writes the POSTed state JSON to the user
+    // matched by ?email=. No session needed (registered before the auth gate);
+    // data is never stored in the repo. Removed after the one-time import.
+    app.post('/admin/import', async (req, res) => {
+      if (req.query.token !== 'seed-9f2a7c41e6') return res.status(403).type('text').send('forbidden');
+      try {
+        const db = require('./lib/db');
+        await db.ensureSchema();
+        const email = String(req.query.email || '').toLowerCase();
+        const profiles = await db.sql()`select user_id, email from profiles`;
+        const match = profiles.find((p) => String(p.email || '').toLowerCase() === email);
+        if (!match) {
+          return res.status(404).type('json').send(JSON.stringify({ error: 'no profile for that email', knownEmails: profiles.map((p) => p.email) }));
+        }
+        const incoming = req.body || {};
+        const state = {
+          recipes: incoming.recipes || [],
+          weeks: incoming.weeks || [],
+          grocery: incoming.grocery || [],
+          library: incoming.library || [],
+          libraryMigratedAt: incoming.libraryMigratedAt || new Date().toISOString()
+        };
+        await db.saveState(match.user_id, state, match.email);
+        res.type('json').send(JSON.stringify({ imported: true, user: match.email, recipes: state.recipes.length, weeks: state.weeks.length, library: state.library.length }));
+      } catch (err) {
+        res.status(500).type('json').send(JSON.stringify({ error: err.message }));
+      }
+    });
+
     require('./lib/cloud').installCloud(app);
   }
 
