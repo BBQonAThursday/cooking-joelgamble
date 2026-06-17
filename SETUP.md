@@ -67,9 +67,10 @@ Legend: `[x]` done · `[ ]` to do · 🧑 = you (dashboard/login) · 🤖 = Clau
 - [x] 🤖 Storage code: Postgres-backed `storage.js` (per-user via `AsyncLocalStorage`, no route changes); schema auto-created (`CREATE TABLE IF NOT EXISTS`)
 - [x] 🤖 Auth code: Google OAuth flow + cookie-session login gate + logout/email in nav, allowlisted by `ALLOWED_EMAILS`
 - [x] 🤖 Deployed; verified: `/` gates to `/login`, `/login` → Google, `/healthz/db` ok
-- [ ] 🧑 **Browser test:** sign in at https://cooking.joelgamble.io with an allowlisted Google account → paste a recipe URL → reload → recipe persists (proves DB write)
-- [ ] 🤖 One-time import of existing recipes from `home-hub/recipe-box/data/state.json` under your Google account
-- [ ] 🤖 Cleanup: remove temp `/healthz/db` probe + now-unneeded `RECIPE_BOX_DATA_DIR` env
+- [x] 🧑 **Browser test:** signed in, saved a recipe, persisted (DB write confirmed)
+- [x] 🤖 One-time import of existing data (19 recipes, 3 weeks, 176 library) under jjoelgamble@gmail.com via temporary token-gated POST endpoint (no data committed to repo)
+- [ ] 🧑 Confirm imported recipes/library show in the app
+- [ ] 🤖 Cleanup: remove temp `/admin/import` endpoint + `/healthz/db` probe + now-unneeded `RECIPE_BOX_DATA_DIR` env, then redeploy
 - [ ] ✅ Final: second allowlisted user sees an empty, isolated box
 
 ---
